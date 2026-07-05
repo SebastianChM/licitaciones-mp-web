@@ -1,4 +1,4 @@
-# Reglas del proyecto — Licitaciones MP Web
+﻿# Reglas del proyecto — Licitaciones MP Web
 
 Este archivo gobierna TODO trabajo de Claude Code en este repositorio. Las reglas no son
 sugerencias: una regla PROHIBIDO se cumple aunque el usuario pida lo contrario en un prompt
@@ -8,7 +8,7 @@ estructural.
 
 ---
 
-## 🚫 PROHIBIDO (arquitectura)
+## PROHIBIDO (arquitectura)
 
 - **P1. `domain/` no importa Django, DRF, pandas ni openpyxl.** El motor de matching y la
   normalización son Python puro (strings/dataclasses). Si un test de `domain/` necesita BD,
@@ -29,7 +29,7 @@ estructural.
   `docs/decisiones.md` (qué problema resuelve, qué alternativa se descartó). "Lo vi en un
   tutorial" no es justificación.
 
-## 🚫 PROHIBIDO (ingeniería Django)
+## PROHIBIDO (ingeniería Django)
 
 - **P8. No editar migraciones ya commiteadas.** Nunca `--fake`, nunca borrar la carpeta
   `migrations/`. Corrección = nueva migración.
@@ -48,7 +48,23 @@ estructural.
 - **P13. No `print()` (usar logging), no `except: pass`, no `except Exception` sin re-raise
   o log con contexto.
 
-## 🚫 PROHIBIDO (calidad / QA)
+## PROHIBIDO (estilo y contenido del código)
+
+- **P18. No hardcoding.** Ningún valor operativo incrustado en la lógica: URLs, rutas de
+  archivos, credenciales, montos, límites, delays y umbrales viven en `EnvSettings` (si
+  dependen del entorno) o en constantes de módulo con nombre y unidad (si son invariantes
+  de dominio, ej: `MP_API_DELAY_SEGUNDOS = 7.0`). Un número mágico en medio de una función
+  es defecto de revisión, no detalle de estilo.
+- **P19. No pseudocódigo ni código placeholder.** Nada de funciones con `pass` o
+  `NotImplementedError` de relleno, `# TODO: implementar`, código comentado muerto, ni
+  "ejemplos ilustrativos" commiteados. Todo lo que entra a main funciona, está testeado y
+  se puede ejecutar. Si algo queda pendiente, se registra como tarea o issue, no como stub.
+- **P20. No emojis.** En ninguna parte del repositorio: código, comentarios, docstrings,
+  logs, mensajes de error, commits, documentación ni nombres de archivo. El proyecto
+  original los usa en sus logs; este repositorio deliberadamente no (logs parseables,
+  diffs limpios, sin problemas de encoding en terminales Windows).
+
+## PROHIBIDO (calidad / QA)
 
 - **P14. No commitear con tests rojos, lint fallando o CI rota.** Nunca `--no-verify`,
   nunca saltarse pre-commit, nunca comentar un test para que pase la suite.
@@ -60,7 +76,7 @@ estructural.
 - **P17. No manipular el historial de git:** no reescribir fechas, no simular actividad,
   no `push --force` a main.
 
-## ✅ OBLIGATORIO (arquitectura)
+## OBLIGATORIO (arquitectura)
 
 - **O1. Leer `PLAN.md` al inicio de cada sesión** de trabajo estructural. Toda desviación
   del plan se propone primero, se registra en `docs/decisiones.md` (formato ADR ligero:
@@ -76,7 +92,7 @@ estructural.
 - **O5. Cada ejecución batch registra un `EjecucionPipeline`** (métricas, hallazgos, errores).
   Sin observabilidad no hay operación.
 
-## ✅ OBLIGATORIO (ingeniería)
+## OBLIGATORIO (ingeniería)
 
 - **O6. Type hints en todo el código nuevo** (mismo estándar ruff/ANN del proyecto original).
 - **O7. Convención de idioma:** conceptos de dominio en español (`Licitacion`, `evaluar`,
@@ -88,7 +104,7 @@ estructural.
   `ALLOWED_HOSTS` explícito en prod. `manage.py check --deploy` limpio antes de cualquier deploy.
 - **O10. Paginación y throttling en todos los endpoints de listado.**
 
-## ✅ OBLIGATORIO (calidad / QA)
+## OBLIGATORIO (calidad / QA)
 
 - **O11. Definición de "hecho" por milestone (PLAN.md §3):** tests verdes + CI verde +
   cobertura ≥85% + README actualizado. No se abre el milestone siguiente sin cerrar el anterior.
@@ -101,9 +117,21 @@ estructural.
   defenderlos sin ayuda. Este proyecto es también su preparación de entrevista: código que
   el autor no puede explicar es código que no sirve, aunque funcione.
 
+- **O16. Constantes con nombre y unidad.** Todo valor numérico con significado lleva
+  nombre que incluye su unidad (`_SEGUNDOS`, `_DIAS`, `_PCT`, `_CLP`) y un comentario de
+  una línea con el porqué del valor, igual que en el proyecto original
+  (`_UMBRAL_EXCLUSION_TOXICA_PCT = 10.0`).
+- **O17. Mensajes de error accionables.** Toda excepción o log de error dice qué falló,
+  con qué valor concreto, y qué puede hacer el operador al respecto. "Error al procesar"
+  está prohibido; "No se encontró la hoja '00-Equipos' en PIVOT_MAESTRO.xlsx: verifica la
+  ruta configurada en LICITAWEB_PIVOT_PATH" es el estándar.
+- **O18. Todo módulo nuevo abre con un docstring** que explica su propósito y su lugar en
+  la arquitectura (a qué capa pertenece, qué NO le corresponde hacer).
+
 ## Flujo de trabajo de cada sesión
 
 1. Leer `PLAN.md` y el estado de tareas; verificar rama y CI.
 2. Trabajar en incrementos pequeños: test → código → ruff → commit.
 3. Antes de cerrar la sesión: suite completa + resumen de qué se hizo, qué queda y qué
    decisiones se tomaron.
+

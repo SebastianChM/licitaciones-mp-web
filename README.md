@@ -9,7 +9,7 @@ un pipeline ETL de escritorio que reduce ~12.000 licitaciones diarias a las ~300
 por equipo. Esta versión reemplaza los archivos Excel por una base de datos relacional, la
 configuración por planilla por el Django Admin, y el reporte estático por una API REST.
 
-> 🚧 **En desarrollo.** Ver [PLAN.md](PLAN.md) para la arquitectura completa y el estado
+> **En desarrollo.** Ver [PLAN.md](PLAN.md) para la arquitectura completa y el estado
 > de los milestones. Las decisiones técnicas se registran en [docs/decisiones.md](docs/decisiones.md).
 
 ## Arranque rápido
