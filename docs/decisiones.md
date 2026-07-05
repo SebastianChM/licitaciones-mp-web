@@ -30,3 +30,16 @@ actualizar a la siguiente LTS será una decisión explícita, no un accidente de
 **Nota sobre pandas:** el proyecto original lo usa porque su dominio ES DataFrames. Aquí el
 dominio son objetos y filas de BD; openpyxl en modo read-only basta para iterar el XLSX del
 portal. Menos dependencias, menos superficie.
+
+## 2026-07-05 — El bulk del portal es por ÍTEM, no por licitación
+
+**Contexto:** la primera ingesta real leyó 17.812 filas pero solo 4.174 licitaciones únicas:
+el Excel del portal repite la licitación una vez por cada producto/servicio que incluye
+(por eso existe la columna "Descripción del producto/servicio").
+**Decisión:** el upsert por `codigo_externo` colapsa las filas-ítem en una licitación (la
+última fila gana en los campos escalares) y los rubros se ACUMULAN con `add()` en vez de
+`set()` para conservar la taxonomía de todos los ítems.
+**Consecuencias:** el conteo "actualizadas" de la ingesta incluye filas-ítem del mismo día,
+no solo refrescos entre días. Limitación conocida a evaluar en M2: hoy `descripcion_producto`
+conserva solo el último ítem; si el matching por COMPONENTE pierde señal, se acumularán los
+ítems en un campo texto o tabla propia.

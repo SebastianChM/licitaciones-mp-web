@@ -14,7 +14,9 @@ extend-exclude = ["*/migrations/*", ".venv"]
 select = ["E", "F", "I", "UP", "B", "SIM", "DTZ", "RUF", "C4", "PTH", "PERF", "S", "ANN", "DJ"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S106", "ANN"]  # asserts, passwords de prueba y tipado laxo en tests
+# S101/S106: asserts y passwords de prueba. ANN: tipado laxo. DTZ001: los fixtures
+# replican datetimes naive porque el portal los entrega asi y Excel no soporta tz.
+"tests/**" = ["S101", "S106", "ANN", "DTZ001"]
 "config/settings/*.py" = ["F403", "F405"]  # star-imports idiomáticos en settings por entorno
 # RUF012: los atributos de Meta/admin (ordering, constraints, inlines) son convención
 # declarativa de Django, no estado mutable compartido. Falso positivo conocido.

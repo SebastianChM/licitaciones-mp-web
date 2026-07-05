@@ -39,6 +39,13 @@ env = EnvSettings()
 
 SECRET_KEY = env.secret_key
 
+# Valores del proveedor expuestos como settings estándar: django.conf.settings
+# solo re-exporta atributos en MAYÚSCULAS de este módulo.
+MP_BULK_URL = env.mp_bulk_url
+MP_API_BASE_URL = env.mp_api_base_url
+MP_API_DELAY_SEGUNDOS = env.mp_api_delay_segundos
+MERCADO_PUBLICO_TICKET = env.mercado_publico_ticket
+
 ALLOWED_HOSTS = [h.strip() for h in env.allowed_hosts.split(",") if h.strip()]
 
 INSTALLED_APPS = [

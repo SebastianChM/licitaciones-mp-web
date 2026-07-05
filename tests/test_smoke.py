@@ -14,6 +14,21 @@ def test_settings_cargan() -> None:
     ]
 
 
+@pytest.mark.unit
+def test_settings_del_proveedor_expuestos_en_mayusculas() -> None:
+    """Regresión: django.conf.settings solo expone atributos en MAYÚSCULAS.
+
+    ingestar_bulk fallaba con AttributeError al leer settings.env (minúscula).
+    Los valores del proveedor deben estar como settings estándar.
+    """
+    from django.conf import settings
+
+    assert settings.MP_BULK_URL.startswith("https://")
+    assert settings.MP_API_BASE_URL.startswith("https://")
+    # P12: el delay de la API pública de MP nunca baja de 7 segundos.
+    assert settings.MP_API_DELAY_SEGUNDOS >= 7.0
+
+
 @pytest.mark.integration
 @pytest.mark.django_db
 def test_custom_user_se_crea() -> None:
