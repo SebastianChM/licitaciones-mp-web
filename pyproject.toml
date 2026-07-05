@@ -1,0 +1,36 @@
+[project]
+name = "licitaciones-mp-web"
+version = "0.1.0"
+description = "Plataforma web Django para descubrimiento, filtrado y gestión de licitaciones de Mercado Público (Chile). Evolución web del pipeline ETL Licitaciones_MP."
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["*/migrations/*", ".venv"]
+
+[tool.ruff.lint]
+# Mismo espíritu que Licitaciones_MP: estricto, con reglas de bugs, seguridad y tipado.
+select = ["E", "F", "I", "UP", "B", "SIM", "DTZ", "RUF", "C4", "PTH", "PERF", "S", "ANN", "DJ"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S106", "ANN"]  # asserts, passwords de prueba y tipado laxo en tests
+"config/settings/*.py" = ["F403", "F405"]  # star-imports idiomáticos en settings por entorno
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py"]
+testpaths = ["tests", "apps", "domain"]
+addopts = "--strict-markers -q"
+markers = [
+    "unit: tests unitarios puros (sin BD)",
+    "integration: tests que usan la BD o servicios",
+]
+
+[tool.coverage.run]
+source = ["apps", "domain", "config"]
+omit = ["*/migrations/*", "config/wsgi.py", "config/asgi.py", "manage.py"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true

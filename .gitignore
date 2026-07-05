@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Secretos y entorno (P10: jamás commitear)
+.env
+
+# Herramientas
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+
+# Datos del portal (P16: no commitear descargas reales)
+data/
+
+# IDE / SO
+.vscode/
+.idea/
+Thumbs.db
