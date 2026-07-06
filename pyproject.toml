@@ -18,10 +18,14 @@ select = ["E", "F", "I", "UP", "B", "SIM", "DTZ", "RUF", "C4", "PTH", "PERF", "S
 # replican datetimes naive porque el portal los entrega asi y Excel no soporta tz.
 "tests/**" = ["S101", "S106", "ANN", "DTZ001"]
 "config/settings/*.py" = ["F403", "F405"]  # star-imports idiomáticos en settings por entorno
-# RUF012: los atributos de Meta/admin (ordering, constraints, inlines) son convención
-# declarativa de Django, no estado mutable compartido. Falso positivo conocido.
+# RUF012: los atributos declarativos de Django/DRF (Meta.fields, ordering,
+# search_fields, inlines) son convención del framework, no estado mutable
+# compartido. Falso positivo conocido.
 "apps/**/models.py" = ["RUF012"]
 "apps/**/admin.py" = ["RUF012"]
+"apps/**/serializers.py" = ["RUF012"]
+"apps/**/views.py" = ["RUF012"]
+"apps/**/filters.py" = ["RUF012"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
