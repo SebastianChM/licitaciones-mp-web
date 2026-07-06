@@ -3,83 +3,109 @@
 {% block titulo %}{{ licitacion.codigo_externo }} - Licitaciones MP{% endblock %}
 
 {% block contenido %}
-<div class="encabezado-pagina">
-  <h1>{{ licitacion.nombre }}</h1>
+<div class="migas">
+  <a href="{% url 'portal:lista' %}?equipo={{ perfil.codigo }}">Bandeja {{ perfil.codigo }}</a>
+  · <span class="codigo">{{ licitacion.codigo_externo }}</span>
 </div>
-<p class="sub" style="margin-top:-8px; margin-bottom:18px;">
-  <span class="codigo">{{ licitacion.codigo_externo }}</span>
-  {% if perfil %} · viendo como equipo <strong>{{ perfil.codigo }}</strong>{% endif %}
-  · <a href="{% url 'portal:lista' %}?equipo={{ perfil.codigo }}">Volver al listado</a>
-</p>
+
+<div class="pagina-head">
+  <h1>{{ licitacion.nombre }}</h1>
+  <div class="sub">{{ licitacion.organismo|default:"Organismo sin información" }}</div>
+</div>
+
+<div class="veredicto">
+  {% if evaluacion_equipo %}
+    {% if evaluacion_equipo.resultado == "bypass" %}
+      <span class="badge bypass">Rescatada por bypass</span>
+    {% else %}
+      <span class="badge incluida">Incluida</span>
+    {% endif %}
+    {% if evaluacion_equipo.confianza == "alta" %}<span class="badge alta">Confianza alta</span>
+    {% elif evaluacion_equipo.confianza == "revisar" %}<span class="badge revisar">Por revisar</span>{% endif %}
+  {% endif %}
+  {% if dias_cierre is not None %}
+    {% if dias_cierre < 0 %}<span class="badge neutro">Cerrada</span>
+    {% elif dias_cierre <= 7 %}<span class="badge urgente">Cierra en {{ dias_cierre }} día{{ dias_cierre|pluralize }}</span>
+    {% else %}<span class="badge neutro">Cierra en {{ dias_cierre }} días</span>{% endif %}
+  {% endif %}
+</div>
 
 <div class="columnas">
   <div class="tarjeta">
-    <div class="seccion ficha">
+    <div class="seccion">
       <h2>Datos de la licitación</h2>
-      <dl>
-        <dt>Organismo</dt><dd>{{ licitacion.organismo|default:"Sin información" }}</dd>
-        {% if licitacion.organismo.region %}<dt>Región</dt><dd>{{ licitacion.organismo.region }}</dd>{% endif %}
-        {% if licitacion.descripcion %}<dt>Descripción</dt><dd>{{ licitacion.descripcion }}</dd>{% endif %}
-        <dt>Monto estimado</dt>
-        <dd>{% if licitacion.monto_estimado %}{{ licitacion.monto_estimado|floatformat:"0g" }} {{ licitacion.moneda|default:"" }}{% else %}No informado{% endif %}</dd>
-        <dt>Publicación</dt><dd>{{ licitacion.fecha_publicacion|date:"d M Y"|default:"—" }}</dd>
-        <dt>Cierre</dt>
-        <dd>
-          {{ licitacion.fecha_cierre|date:"d M Y H:i"|default:"—" }}
-          {% if licitacion.fecha_cierre and licitacion.fecha_cierre < hoy %}<span class="badge urgente">Cerrada</span>{% endif %}
-        </dd>
-        {% if licitacion.rubros.all %}
-        <dt>Taxonomía</dt>
-        <dd>{% for rubro in licitacion.rubros.all %}<span class="chip">{{ rubro }}</span>{% endfor %}</dd>
+      <dl class="ficha">
+        <div class="campo"><dt>Monto estimado</dt>
+          <dd>{% if licitacion.monto_estimado %}{{ licitacion.monto_estimado|floatformat:"0g" }} {{ licitacion.moneda|default:"" }}{% else %}No informado{% endif %}</dd></div>
+        <div class="campo"><dt>Región</dt><dd>{{ licitacion.organismo.region|default:"—" }}</dd></div>
+        <div class="campo"><dt>Publicación</dt><dd>{{ licitacion.fecha_publicacion|date:"d M Y"|default:"—" }}</dd></div>
+        <div class="campo"><dt>Cierre</dt><dd>{{ licitacion.fecha_cierre|date:"d M Y · H:i"|default:"—" }}</dd></div>
+        {% if licitacion.descripcion %}
+        <div class="campo ancho"><dt>Descripción</dt><dd>{{ licitacion.descripcion }}</dd></div>
         {% endif %}
-        {% if licitacion.url_ficha %}<dt>Ficha oficial</dt><dd><a href="{{ licitacion.url_ficha }}" rel="noopener">Ver en Mercado Público</a></dd>{% endif %}
+        {% if licitacion.url_ficha %}
+        <div class="campo ancho"><dt>Ficha oficial</dt><dd><a href="{{ licitacion.url_ficha }}" rel="noopener">Ver en Mercado Público</a></dd></div>
+        {% endif %}
       </dl>
     </div>
 
+    {% if licitacion.rubros.all %}
+    <div class="seccion chips-taxonomia">
+      <h2>Taxonomía</h2>
+      {% for rubro in licitacion.rubros.all %}<span class="pill">{{ rubro }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
     <div class="seccion">
-      <h2>Por qué está aquí (trazabilidad del filtro)</h2>
+      <h2>Por qué está aquí</h2>
       {% if evaluacion_equipo %}
-        <p>
-          {% if evaluacion_equipo.resultado == "bypass" %}
-            <span class="badge bypass">Rescatada por bypass</span>
-          {% else %}
-            <span class="badge incluida">Incluida</span>
-          {% endif %}
-          {% if evaluacion_equipo.confianza == "alta" %}<span class="badge alta">Confianza alta</span>
-          {% elif evaluacion_equipo.confianza == "revisar" %}<span class="badge revisar">Por revisar</span>{% endif %}
-        </p>
+      <ul class="pipeline">
         {% if evaluacion_equipo.trazabilidad.inclusion %}
-          <p><strong>Entró por:</strong><br>
-          {% for entrada in evaluacion_equipo.trazabilidad.inclusion %}<span class="chip inclusion">{{ entrada }}</span>{% endfor %}</p>
+        <li class="ok">
+          <span class="nodo"></span>
+          <div class="titulo-paso">Entró al filtro de {{ perfil.codigo }}</div>
+          <div class="chips">
+            {% for entrada in evaluacion_equipo.trazabilidad.inclusion %}<span class="chip inclusion">{{ entrada }}</span>{% endfor %}
+          </div>
+        </li>
         {% endif %}
         {% if evaluacion_equipo.trazabilidad.exclusion %}
-          <p><strong>Una exclusión la bloqueaba:</strong><br>
-          {% for entrada in evaluacion_equipo.trazabilidad.exclusion %}<span class="chip exclusion">{{ entrada }}</span>{% endfor %}</p>
+        <li class="hot">
+          <span class="nodo"></span>
+          <div class="titulo-paso">Una exclusión la bloqueaba</div>
+          <div class="chips">
+            {% for entrada in evaluacion_equipo.trazabilidad.exclusion %}<span class="chip exclusion">{{ entrada }}</span>{% endfor %}
+          </div>
+        </li>
         {% endif %}
         {% if evaluacion_equipo.trazabilidad.bypass %}
-          <p><strong>La rescató:</strong><br>
-          {% for entrada in evaluacion_equipo.trazabilidad.bypass %}<span class="chip bypass">{{ entrada }}</span>{% endfor %}</p>
+        <li class="warn">
+          <span class="nodo"></span>
+          <div class="titulo-paso">La rescató el bypass</div>
+          <div class="chips">
+            {% for entrada in evaluacion_equipo.trazabilidad.bypass %}<span class="chip bypass">{{ entrada }}</span>{% endfor %}
+          </div>
+        </li>
         {% endif %}
+      </ul>
       {% else %}
-        <p class="sub">Este equipo no tiene una evaluación para esta licitación (corre el comando evaluar).</p>
+        <p class="sub">Este equipo aún no evalúa esta licitación (corre el comando <span class="codigo">evaluar</span>).</p>
       {% endif %}
     </div>
 
-    {% if licitacion.evaluaciones.all|length > 1 %}
+    {% if otras_evaluaciones %}
     <div class="seccion">
       <h2>Otros equipos</h2>
-      {% for evaluacion in licitacion.evaluaciones.all %}
-        {% if not perfil or evaluacion.perfil_id != perfil.pk %}
-          <span class="chip">{{ evaluacion.perfil.codigo }}: {{ evaluacion.get_resultado_display }}</span>
-        {% endif %}
+      {% for evaluacion in otras_evaluaciones %}
+        <span class="chip neutro">{{ evaluacion.perfil.codigo }} · {{ evaluacion.get_resultado_display }}</span>
       {% endfor %}
     </div>
     {% endif %}
   </div>
 
-  <div class="tarjeta">
+  <div class="tarjeta pegajoso">
     <div class="seccion panel-gestion">
-      <h2>Gestión del equipo {{ perfil.codigo }}</h2>
+      <h2>Gestión de {{ perfil.codigo }}</h2>
       <form method="post" action="{% url 'portal:actualizar-gestion' licitacion.codigo_externo %}">
         {% csrf_token %}
         <input type="hidden" name="equipo" value="{{ perfil.codigo }}">
@@ -87,16 +113,16 @@
         {{ form.estado }}
         <label for="{{ form.notas.id_for_label }}">Notas</label>
         {{ form.notas }}
-        <button type="submit" class="boton">Guardar</button>
+        <button type="submit" class="boton primario">Guardar gestión</button>
       </form>
       {% if gestion %}
         <p class="meta-gestion">
-          Última actualización: {{ gestion.updated_at|date:"d M Y H:i" }}
-          {% if gestion.actualizado_por %} por {{ gestion.actualizado_por.username }}{% endif %}
-          {% if gestion.asignado_a %} · asignada a {{ gestion.asignado_a.username }}{% endif %}
+          Actualizada el {{ gestion.updated_at|date:"d M Y · H:i" }}
+          {% if gestion.actualizado_por %} por <strong>{{ gestion.actualizado_por.username }}</strong>{% endif %}.
+          {% if gestion.asignado_a %} Asignada a <strong>{{ gestion.asignado_a.username }}</strong>.{% endif %}
         </p>
       {% else %}
-        <p class="meta-gestion">Esta licitación aún no tiene gestión de tu equipo. Al guardar, quedará asignada a ti.</p>
+        <p class="meta-gestion">Sin gestión todavía. Al guardar quedará asignada a ti.</p>
       {% endif %}
     </div>
   </div>

@@ -60,6 +60,14 @@ la API DRF queda para integraciones externas y el portal usa vistas propias con 
 sesión de Django. Si el producto crece a interacciones ricas, el paso siguiente es htmx,
 no un SPA.
 
+**Rediseño v2 (mismo día, feedback del owner):** la primera versión era competente pero
+genérica. El rediseño parte del trabajo del usuario (triaje diario contra fecha de
+cierre): la cuenta regresiva de cierre es el elemento protagonista de la tabla; los
+equipos pasan de dropdown a navegación primaria en sidebar; las tarjetas de resumen son
+filtros clicables; la trazabilidad se presenta como pipeline de pasos y no como lista de
+chips. Tipografía Inter variable self-hosted (un solo woff2 estático, licencia OFL, sin
+CDN) con numerales tabulares para códigos y montos.
+
 ## 2026-07-05 — Port del motor corrige bug latente del boost UNSPSC
 
 **Contexto:** en el original, `_TAXONOMIA_ALTA_N2` contiene frases CON acento

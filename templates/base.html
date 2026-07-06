@@ -7,23 +7,38 @@
   <link rel="stylesheet" href="{% static 'portal/estilos.css' %}">
 </head>
 <body>
-<header class="topbar">
-  <a class="marca" href="{% url 'portal:lista' %}">Licitaciones<span>MP</span></a>
-  <nav>
-    <a href="{% url 'portal:lista' %}">Relevantes</a>
-    <a href="/api/licitaciones/">API</a>
-    {% if user.is_staff %}<a href="/admin/">Administración</a>{% endif %}
-  </nav>
-  <div class="usuario">
-    <span>{{ user.username }}</span>
-    <form method="post" action="{% url 'logout' %}">
-      {% csrf_token %}
-      <button type="submit" class="boton-salir">Salir</button>
-    </form>
-  </div>
-</header>
-<main class="contenedor">
-  {% block contenido %}{% endblock %}
-</main>
+<div class="app">
+  <aside class="sidebar">
+    <a class="marca" href="{% url 'portal:lista' %}">
+      Licitaciones MP
+      <small>Mercado Público · Chile</small>
+    </a>
+
+    <div class="grupo">Equipos</div>
+    {% for p in perfiles %}
+      <a class="nav-item {% if perfil and p.pk == perfil.pk %}activo{% endif %}"
+         href="{% url 'portal:lista' %}?equipo={{ p.codigo }}">
+        <span>{{ p.codigo }}</span>
+        <span class="cuenta">{{ p.relevantes }}</span>
+      </a>
+    {% endfor %}
+
+    <div class="grupo">Sistema</div>
+    <a class="nav-item" href="/api/licitaciones/">API</a>
+    {% if user.is_staff %}<a class="nav-item" href="/admin/">Administración</a>{% endif %}
+
+    <div class="abajo">
+      <div class="usuario"><strong>{{ user.username }}</strong>sesión activa</div>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="boton-salir">Cerrar sesión</button>
+      </form>
+    </div>
+  </aside>
+
+  <main class="contenido">
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
 </body>
 </html>

@@ -3,42 +3,45 @@
 {% block titulo %}Relevantes {{ perfil.codigo }} - Licitaciones MP{% endblock %}
 
 {% block contenido %}
-<div class="encabezado-pagina">
-  <h1>Licitaciones relevantes {% if perfil %}para {{ perfil.nombre }}{% endif %}</h1>
-  <span class="sub">Ordenadas por fecha de cierre (las más urgentes primero)</span>
+<div class="pagina-head">
+  <h1>Bandeja de {{ perfil.nombre|default:"trabajo" }}</h1>
+  <div class="sub">Licitaciones relevantes ordenadas por cierre. Toca una tarjeta de resumen para filtrar.</div>
 </div>
 
 {% if perfil %}
 <div class="stats">
-  <div class="stat"><div class="valor">{{ stats.total }}</div><div class="etiqueta">Relevantes en total</div></div>
-  <div class="stat alta"><div class="valor">{{ stats.alta }}</div><div class="etiqueta">Confianza alta</div></div>
-  <div class="stat revisar"><div class="valor">{{ stats.revisar }}</div><div class="etiqueta">Por revisar</div></div>
-  <div class="stat urgente"><div class="valor">{{ stats.cierran_pronto }}</div><div class="etiqueta">Cierran en 7 días</div></div>
+  <a class="stat {% if not confianza_seleccionada and not cierra_pronto %}activo{% endif %}"
+     href="?equipo={{ perfil.codigo }}">
+    <div class="valor">{{ stats.total }}</div>
+    <div class="etiqueta"><span class="punto neutro"></span>Relevantes en total</div>
+  </a>
+  <a class="stat {% if confianza_seleccionada == 'alta' %}activo{% endif %}"
+     href="?equipo={{ perfil.codigo }}&confianza=alta">
+    <div class="valor">{{ stats.alta }}</div>
+    <div class="etiqueta"><span class="punto ok"></span>Confianza alta</div>
+  </a>
+  <a class="stat {% if confianza_seleccionada == 'revisar' %}activo{% endif %}"
+     href="?equipo={{ perfil.codigo }}&confianza=revisar">
+    <div class="valor">{{ stats.revisar }}</div>
+    <div class="etiqueta"><span class="punto warn"></span>Por revisar</div>
+  </a>
+  <a class="stat {% if cierra_pronto %}activo{% endif %}"
+     href="?equipo={{ perfil.codigo }}&cierra=pronto">
+    <div class="valor">{{ stats.cierran_pronto }}</div>
+    <div class="etiqueta"><span class="punto hot"></span>Cierran en 7 días</div>
+  </a>
 </div>
 {% endif %}
 
-<form class="filtros" method="get">
-  <div>
-    <label for="equipo">Equipo</label>
-    <select name="equipo" id="equipo">
-      {% for p in perfiles %}
-        <option value="{{ p.codigo }}" {% if perfil and p.pk == perfil.pk %}selected{% endif %}>{{ p.codigo }} — {{ p.nombre }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label for="confianza">Confianza</label>
-    <select name="confianza" id="confianza">
-      <option value="">Todas</option>
-      <option value="alta" {% if confianza_seleccionada == "alta" %}selected{% endif %}>Alta</option>
-      <option value="revisar" {% if confianza_seleccionada == "revisar" %}selected{% endif %}>Por revisar</option>
-    </select>
-  </div>
-  <div>
-    <label for="q">Buscar</label>
-    <input type="text" name="q" id="q" value="{{ busqueda }}" placeholder="Nombre de la licitación...">
-  </div>
-  <button type="submit" class="boton">Filtrar</button>
+<form class="toolbar" method="get">
+  <input type="hidden" name="equipo" value="{{ perfil.codigo }}">
+  {% if confianza_seleccionada %}<input type="hidden" name="confianza" value="{{ confianza_seleccionada }}">{% endif %}
+  {% if cierra_pronto %}<input type="hidden" name="cierra" value="pronto">{% endif %}
+  <input type="text" name="q" value="{{ busqueda }}" placeholder="Buscar por nombre de licitación...">
+  <button type="submit" class="boton">Buscar</button>
+  {% if busqueda or confianza_seleccionada or cierra_pronto %}
+    <a class="boton fantasma" href="?equipo={{ perfil.codigo }}" style="display:inline-flex;align-items:center;">Limpiar</a>
+  {% endif %}
 </form>
 
 <div class="tarjeta">
@@ -46,10 +49,10 @@
   <table class="listado">
     <thead>
       <tr>
-        <th>Licitación</th>
+        <th style="width:46%">Licitación</th>
+        <th>Cierre</th>
         <th>Cómo entró</th>
         <th>Confianza</th>
-        <th>Cierre</th>
         <th>Gestión</th>
       </tr>
     </thead>
@@ -57,36 +60,43 @@
       {% for evaluacion in evaluaciones %}
       {% with licitacion=evaluacion.licitacion %}
       <tr>
-        <td class="nombre">
+        <td class="celda-nombre">
           <a href="{% url 'portal:detalle' licitacion.codigo_externo %}?equipo={{ perfil.codigo }}">{{ licitacion.nombre }}</a>
-          <div class="organismo">{{ licitacion.organismo|default:"" }}</div>
-          <span class="codigo">{{ licitacion.codigo_externo }}</span>
+          <div class="fuente">{{ licitacion.organismo|default:"" }} · <span class="codigo">{{ licitacion.codigo_externo }}</span></div>
+        </td>
+        <td class="cierre">
+          {% if evaluacion.dias_cierre is None %}
+            <span class="dias ok">—</span>
+          {% elif evaluacion.dias_cierre < 0 %}
+            <span class="dias vencida">cerrada</span>
+          {% elif evaluacion.dias_cierre == 0 %}
+            <span class="dias hot">hoy</span>
+          {% elif evaluacion.dias_cierre <= 2 %}
+            <span class="dias hot">{{ evaluacion.dias_cierre }}d</span>
+          {% elif evaluacion.dias_cierre <= 7 %}
+            <span class="dias warn">{{ evaluacion.dias_cierre }}d</span>
+          {% else %}
+            <span class="dias ok">{{ evaluacion.dias_cierre }}d</span>
+          {% endif %}
+          {% if licitacion.fecha_cierre %}<span class="fecha">{{ licitacion.fecha_cierre|date:"d M · H:i" }}</span>{% endif %}
         </td>
         <td>
           {% if evaluacion.resultado == "bypass" %}
-            <span class="badge bypass">Rescatada</span>
+            <span class="senal bypass">Rescatada</span>
           {% else %}
-            <span class="badge incluida">Incluida</span>
+            <span class="senal incluida">Incluida</span>
           {% endif %}
         </td>
         <td>
-          {% if evaluacion.confianza == "alta" %}<span class="badge alta">Alta</span>
-          {% elif evaluacion.confianza == "revisar" %}<span class="badge revisar">Revisar</span>
-          {% else %}<span class="badge na">—</span>{% endif %}
-        </td>
-        <td>
-          {% if licitacion.fecha_cierre %}
-            {{ licitacion.fecha_cierre|date:"d M Y H:i" }}
-            {% if licitacion.fecha_cierre >= hoy and licitacion.fecha_cierre <= limite_urgente %}
-              <div><span class="badge urgente">Pronto</span></div>
-            {% endif %}
-          {% else %}—{% endif %}
+          {% if evaluacion.confianza == "alta" %}<span class="senal alta">Alta</span>
+          {% elif evaluacion.confianza == "revisar" %}<span class="senal revisar">Revisar</span>
+          {% else %}<span class="senal na">—</span>{% endif %}
         </td>
         <td>
           {% if evaluacion.gestion_equipo %}
-            <span class="badge estado">{{ evaluacion.gestion_equipo.get_estado_display }}</span>
+            <span class="pill estado">{{ evaluacion.gestion_equipo.get_estado_display }}</span>
           {% else %}
-            <span class="badge na">Sin gestión</span>
+            <span class="pill">Sin gestión</span>
           {% endif %}
         </td>
       </tr>
@@ -95,17 +105,20 @@
     </tbody>
   </table>
   {% else %}
-    <div class="vacio">No hay licitaciones relevantes con estos filtros.</div>
+    <div class="vacio">
+      <strong>Nada por aquí</strong>
+      No hay licitaciones relevantes con estos filtros. Prueba limpiarlos o corre la ingesta del día.
+    </div>
   {% endif %}
 
   {% if is_paginated %}
   <div class="paginacion">
     {% if page_obj.has_previous %}
-      <a href="?equipo={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}&q={{ busqueda }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+      <a href="?equipo={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}{% if cierra_pronto %}&cierra=pronto{% endif %}&q={{ busqueda }}&page={{ page_obj.previous_page_number }}">Anterior</a>
     {% endif %}
-    <span class="actual">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span class="actual">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-      <a href="?equipo={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}&q={{ busqueda }}&page={{ page_obj.next_page_number }}">Siguiente</a>
+      <a href="?equipo={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}{% if cierra_pronto %}&cierra=pronto{% endif %}&q={{ busqueda }}&page={{ page_obj.next_page_number }}">Siguiente</a>
     {% endif %}
   </div>
   {% endif %}

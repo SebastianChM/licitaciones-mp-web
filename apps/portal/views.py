@@ -8,7 +8,7 @@ equipo), con la gestión del equipo resuelta en una sola consulta adicional.
 import datetime
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import QuerySet
+from django.db.models import Count, Q, QuerySet
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -28,10 +28,18 @@ FILAS_POR_PAGINA = 25
 
 
 def _perfiles_operables() -> QuerySet[PerfilFiltro]:
-    """Solo equipos activos con reglas de inclusión: los demás no producen resultados."""
+    """Solo equipos activos con reglas de inclusión, con su conteo de relevantes
+    (el sidebar los muestra como navegación primaria)."""
     return (
         PerfilFiltro.objects.filter(
             activo=True, reglas__tipo=ReglaKeyword.Tipo.INCLUIR, reglas__activa=True
+        )
+        .annotate(
+            relevantes=Count(
+                "evaluaciones",
+                filter=Q(evaluaciones__resultado__in=RESULTADOS_RELEVANTES),
+                distinct=True,
+            )
         )
         .distinct()
         .order_by("codigo")
@@ -64,6 +72,12 @@ class ListaRelevantesView(LoginRequiredMixin, ListView):
         confianza = self.request.GET.get("confianza", "")
         if confianza in EvaluacionFiltro.Confianza.values:
             queryset = queryset.filter(confianza=confianza)
+        if self.request.GET.get("cierra") == "pronto":
+            queryset = queryset.filter(
+                licitacion__fecha_cierre__gte=timezone.now(),
+                licitacion__fecha_cierre__lte=timezone.now()
+                + datetime.timedelta(days=DIAS_CIERRE_URGENTE),
+            )
         busqueda = self.request.GET.get("q", "").strip()
         if busqueda:
             queryset = queryset.filter(licitacion__nombre__icontains=busqueda)
@@ -75,6 +89,7 @@ class ListaRelevantesView(LoginRequiredMixin, ListView):
         contexto["perfiles"] = _perfiles_operables()
         contexto["perfil"] = perfil
         contexto["confianza_seleccionada"] = self.request.GET.get("confianza", "")
+        contexto["cierra_pronto"] = self.request.GET.get("cierra") == "pronto"
         contexto["busqueda"] = self.request.GET.get("q", "")
 
         if perfil is not None:
@@ -100,8 +115,13 @@ class ListaRelevantesView(LoginRequiredMixin, ListView):
                     perfil=perfil, licitacion_id__in=ids_pagina
                 )
             }
+            hoy = timezone.localdate()
             for evaluacion in contexto["evaluaciones"]:
                 evaluacion.gestion_equipo = gestiones.get(evaluacion.licitacion_id)
+                cierre = evaluacion.licitacion.fecha_cierre
+                evaluacion.dias_cierre = (
+                    (timezone.localtime(cierre).date() - hoy).days if cierre else None
+                )
         contexto["hoy"] = timezone.now()
         contexto["limite_urgente"] = timezone.now() + datetime.timedelta(days=DIAS_CIERRE_URGENTE)
         return contexto
@@ -132,9 +152,16 @@ class DetalleLicitacionView(LoginRequiredMixin, DetailView):
             ).first()
         contexto["gestion"] = gestion
         contexto["form"] = GestionForm(instance=gestion)
+        evaluaciones = list(self.object.evaluaciones.all())
         contexto["evaluacion_equipo"] = next(
-            (e for e in self.object.evaluaciones.all() if perfil and e.perfil_id == perfil.pk),
-            None,
+            (e for e in evaluaciones if perfil and e.perfil_id == perfil.pk), None
+        )
+        contexto["otras_evaluaciones"] = [
+            e for e in evaluaciones if not perfil or e.perfil_id != perfil.pk
+        ]
+        cierre = self.object.fecha_cierre
+        contexto["dias_cierre"] = (
+            (timezone.localtime(cierre).date() - timezone.localdate()).days if cierre else None
         )
         contexto["hoy"] = timezone.now()
         return contexto

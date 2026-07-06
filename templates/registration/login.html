@@ -6,22 +6,35 @@
   <title>Ingresar - Licitaciones MP</title>
   <link rel="stylesheet" href="{% static 'portal/estilos.css' %}">
 </head>
-<body class="login-fondo">
-  <div class="login-caja">
-    <h1>Licitaciones MP</h1>
-    <p class="sub">Descubrimiento y gestión de licitaciones públicas</p>
-    {% if form.errors %}
-      <div class="error">Usuario o contraseña incorrectos. Intenta de nuevo.</div>
-    {% endif %}
-    <form method="post">
-      {% csrf_token %}
-      <label for="id_username">Usuario</label>
-      <input type="text" name="username" id="id_username" autofocus autocomplete="username">
-      <label for="id_password">Contraseña</label>
-      <input type="password" name="password" id="id_password" autocomplete="current-password">
-      <button type="submit" class="boton">Ingresar</button>
-      <input type="hidden" name="next" value="{{ next }}">
-    </form>
+<body>
+<div class="login-grid">
+  <div class="login-brand">
+    <div class="logo">Licitaciones MP</div>
+    <h2>Las <em>12.000</em> licitaciones del día,<br>reducidas a las que te importan.</h2>
+    <div class="datos">
+      <strong>Ingesta diaria</strong> del portal Mercado Público ·
+      <strong>filtrado con trazabilidad</strong> por equipo ·
+      <strong>gestión</strong> sin perder el trabajo de nadie.
+    </div>
   </div>
+  <div class="login-form">
+    <div class="login-caja">
+      <h1>Ingresar</h1>
+      <p class="sub">Usa tu cuenta del equipo</p>
+      {% if form.errors %}
+        <div class="error">Usuario o contraseña incorrectos. Intenta de nuevo.</div>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <label for="id_username">Usuario</label>
+        <input type="text" name="username" id="id_username" autofocus autocomplete="username">
+        <label for="id_password">Contraseña</label>
+        <input type="password" name="password" id="id_password" autocomplete="current-password">
+        <button type="submit" class="boton primario">Entrar</button>
+        <input type="hidden" name="next" value="{{ next }}">
+      </form>
+    </div>
+  </div>
+</div>
 </body>
 </html>
