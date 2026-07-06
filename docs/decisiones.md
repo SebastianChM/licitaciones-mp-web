@@ -1,5 +1,23 @@
 # Registro de decisiones (ADR ligero)
 
+## 2026-07-06 — Pivote de producto: de equipos corporativos a búsquedas por usuario
+
+**Contexto:** el concepto "equipo" (TELECOM, ARQ...) venía del contexto IDOM del proyecto
+original, con reglas mantenidas en un Excel (PIVOT_MAESTRO). El owner quiere un producto
+usable por cualquier persona: crear búsquedas y administrar reglas desde la página, sin
+intervención en Excel.
+**Decisión:** `PerfilFiltro` se re-semantiza como "búsqueda guardada" con `propietario`
+(FK a User): mismo modelo relacional (EvaluacionFiltro por licitación x perfil,
+GestionLicitacion por perfil), nueva semántica de producto. El portal agrega CRUD de
+búsquedas y reglas (con la misma normalización del import) y un botón "Re-evaluar ahora"
+que corre el motor en la request (el motor evalúa ~4k licitaciones en segundos; no
+necesita cola). Cada usuario ve SOLO sus búsquedas (aislamiento con 404). `importar_pivot`
+pasa de requisito a herramienta opcional de migración. La ingesta y el enriquecimiento
+siguen siendo batch programado: son infraestructura de datos, no reglas del usuario.
+**Consecuencias:** el parámetro de URL pasa de `equipo` a `perfil` en el portal; la API
+acepta ambos (`equipo` queda como alias deprecado). Las búsquedas existentes se asignan
+al primer usuario en una migración de datos.
+
 Formato por entrada: **Contexto → Decisión → Consecuencias**. Toda desviación de PLAN.md
 y toda dependencia nueva se registra aquí (O1 y P7 de CLAUDE.md).
 

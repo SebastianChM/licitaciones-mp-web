@@ -14,14 +14,17 @@
       <small>Mercado Público · Chile</small>
     </a>
 
-    <div class="grupo">Equipos</div>
+    <div class="grupo">Mis búsquedas</div>
     {% for p in perfiles %}
       <a class="nav-item {% if perfil and p.pk == perfil.pk %}activo{% endif %}"
-         href="{% url 'portal:lista' %}?equipo={{ p.codigo }}">
-        <span>{{ p.codigo }}</span>
+         href="{% url 'portal:lista' %}?perfil={{ p.codigo }}">
+        <span>{{ p.nombre|truncatechars:22 }}</span>
         <span class="cuenta">{{ p.relevantes }}</span>
       </a>
+    {% empty %}
+      <span class="nav-item" style="opacity:.6">Aún no tienes búsquedas</span>
     {% endfor %}
+    <a class="nav-item nueva" href="{% url 'portal:busqueda-nueva' %}">+ Nueva búsqueda</a>
 
     <div class="grupo">Sistema</div>
     <a class="nav-item" href="/api/licitaciones/">API</a>
@@ -37,6 +40,13 @@
   </aside>
 
   <main class="contenido">
+    {% if messages %}
+      <div class="mensajes">
+        {% for mensaje in messages %}
+          <div class="mensaje {{ mensaje.tags }}">{{ mensaje }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
     {% block contenido %}{% endblock %}
   </main>
 </div>

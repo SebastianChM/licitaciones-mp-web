@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block titulo %}Nueva búsqueda - Licitaciones MP{% endblock %}
+
+{% block contenido %}
+<div class="pagina-head">
+  <h1>Nueva búsqueda</h1>
+  <div class="sub">Ponle nombre; después defines sus reglas y evalúas contra las licitaciones del día.</div>
+</div>
+
+<div class="tarjeta" style="max-width:560px;">
+  <div class="seccion panel-gestion">
+    <form method="post">
+      {% csrf_token %}
+      <label for="{{ form.nombre.id_for_label }}">Nombre</label>
+      {{ form.nombre }}
+      {% for error in form.nombre.errors %}<p class="error-campo">{{ error }}</p>{% endfor %}
+      <label for="{{ form.descripcion.id_for_label }}">Descripción (opcional)</label>
+      {{ form.descripcion }}
+      <button type="submit" class="boton primario">Crear y definir reglas</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

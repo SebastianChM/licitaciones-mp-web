@@ -30,9 +30,9 @@ def cliente(usuario) -> Client:
 
 
 @pytest.fixture
-def perfil_operable():
-    """Un perfil con regla de inclusión: el selector del portal solo ofrece estos."""
-    perfil = PerfilFiltroFactory(codigo="TELECOM", nombre="Telecomunicaciones")
+def perfil_operable(usuario):
+    """Una búsqueda del usuario con regla de inclusión (el portal solo muestra las propias)."""
+    perfil = PerfilFiltroFactory(codigo="TELECOM", nombre="Telecomunicaciones", propietario=usuario)
     ReglaKeywordFactory(perfil=perfil, tipo=ReglaKeyword.Tipo.INCLUIR, texto="FIBRA")
     return perfil
 

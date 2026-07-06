@@ -1,46 +1,64 @@
 {% extends "base.html" %}
 
-{% block titulo %}Relevantes {{ perfil.codigo }} - Licitaciones MP{% endblock %}
+{% block titulo %}{{ perfil.nombre|default:"Bandeja" }} - Licitaciones MP{% endblock %}
 
 {% block contenido %}
+{% if not perfil %}
 <div class="pagina-head">
-  <h1>Bandeja de {{ perfil.nombre|default:"trabajo" }}</h1>
+  <h1>Bienvenido</h1>
+  <div class="sub">Crea tu primera búsqueda para empezar a filtrar las licitaciones del día.</div>
+</div>
+<div class="tarjeta"><div class="vacio">
+  <strong>Aún no tienes búsquedas</strong>
+  Una búsqueda es un conjunto de reglas (qué incluir, qué excluir) que se evalúa contra
+  las ~4.000 licitaciones diarias del Mercado Público.
+  <p><a class="boton primario" style="display:inline-block;text-decoration:none;margin-top:12px;" href="{% url 'portal:busqueda-nueva' %}">Crear mi primera búsqueda</a></p>
+</div></div>
+{% else %}
+<div class="pagina-head">
+  <h1>{{ perfil.nombre }}</h1>
   <div class="sub">Licitaciones relevantes ordenadas por cierre. Toca una tarjeta de resumen para filtrar.</div>
 </div>
 
-{% if perfil %}
+<div class="acciones-busqueda">
+  <a class="boton fantasma" href="{% url 'portal:reglas' perfil.codigo %}">Ajustar reglas</a>
+  <form method="post" action="{% url 'portal:evaluar-ahora' perfil.codigo %}">
+    {% csrf_token %}
+    <button type="submit" class="boton primario">Re-evaluar ahora</button>
+  </form>
+</div>
+
 <div class="stats">
   <a class="stat {% if not confianza_seleccionada and not cierra_pronto %}activo{% endif %}"
-     href="?equipo={{ perfil.codigo }}">
+     href="?perfil={{ perfil.codigo }}">
     <div class="valor">{{ stats.total }}</div>
     <div class="etiqueta"><span class="punto neutro"></span>Relevantes en total</div>
   </a>
   <a class="stat {% if confianza_seleccionada == 'alta' %}activo{% endif %}"
-     href="?equipo={{ perfil.codigo }}&confianza=alta">
+     href="?perfil={{ perfil.codigo }}&confianza=alta">
     <div class="valor">{{ stats.alta }}</div>
     <div class="etiqueta"><span class="punto ok"></span>Confianza alta</div>
   </a>
   <a class="stat {% if confianza_seleccionada == 'revisar' %}activo{% endif %}"
-     href="?equipo={{ perfil.codigo }}&confianza=revisar">
+     href="?perfil={{ perfil.codigo }}&confianza=revisar">
     <div class="valor">{{ stats.revisar }}</div>
     <div class="etiqueta"><span class="punto warn"></span>Por revisar</div>
   </a>
   <a class="stat {% if cierra_pronto %}activo{% endif %}"
-     href="?equipo={{ perfil.codigo }}&cierra=pronto">
+     href="?perfil={{ perfil.codigo }}&cierra=pronto">
     <div class="valor">{{ stats.cierran_pronto }}</div>
     <div class="etiqueta"><span class="punto hot"></span>Cierran en 7 días</div>
   </a>
 </div>
-{% endif %}
 
 <form class="toolbar" method="get">
-  <input type="hidden" name="equipo" value="{{ perfil.codigo }}">
+  <input type="hidden" name="perfil" value="{{ perfil.codigo }}">
   {% if confianza_seleccionada %}<input type="hidden" name="confianza" value="{{ confianza_seleccionada }}">{% endif %}
   {% if cierra_pronto %}<input type="hidden" name="cierra" value="pronto">{% endif %}
   <input type="text" name="q" value="{{ busqueda }}" placeholder="Buscar por nombre de licitación...">
   <button type="submit" class="boton">Buscar</button>
   {% if busqueda or confianza_seleccionada or cierra_pronto %}
-    <a class="boton fantasma" href="?equipo={{ perfil.codigo }}" style="display:inline-flex;align-items:center;">Limpiar</a>
+    <a class="boton fantasma" href="?perfil={{ perfil.codigo }}" style="display:inline-flex;align-items:center;">Limpiar</a>
   {% endif %}
 </form>
 
@@ -61,7 +79,7 @@
       {% with licitacion=evaluacion.licitacion %}
       <tr>
         <td class="celda-nombre">
-          <a href="{% url 'portal:detalle' licitacion.codigo_externo %}?equipo={{ perfil.codigo }}">{{ licitacion.nombre }}</a>
+          <a href="{% url 'portal:detalle' licitacion.codigo_externo %}?perfil={{ perfil.codigo }}">{{ licitacion.nombre }}</a>
           <div class="fuente">{{ licitacion.organismo|default:"" }} · <span class="codigo">{{ licitacion.codigo_externo }}</span></div>
         </td>
         <td class="cierre">
@@ -107,20 +125,23 @@
   {% else %}
     <div class="vacio">
       <strong>Nada por aquí</strong>
-      No hay licitaciones relevantes con estos filtros. Prueba limpiarlos o corre la ingesta del día.
+      No hay licitaciones relevantes con estos filtros.
+      <a href="{% url 'portal:reglas' perfil.codigo %}">Revisa tus reglas</a> y re-evalúa,
+      o limpia los filtros.
     </div>
   {% endif %}
 
   {% if is_paginated %}
   <div class="paginacion">
     {% if page_obj.has_previous %}
-      <a href="?equipo={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}{% if cierra_pronto %}&cierra=pronto{% endif %}&q={{ busqueda }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+      <a href="?perfil={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}{% if cierra_pronto %}&cierra=pronto{% endif %}&q={{ busqueda }}&page={{ page_obj.previous_page_number }}">Anterior</a>
     {% endif %}
     <span class="actual">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-      <a href="?equipo={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}{% if cierra_pronto %}&cierra=pronto{% endif %}&q={{ busqueda }}&page={{ page_obj.next_page_number }}">Siguiente</a>
+      <a href="?perfil={{ perfil.codigo }}&confianza={{ confianza_seleccionada }}{% if cierra_pronto %}&cierra=pronto{% endif %}&q={{ busqueda }}&page={{ page_obj.next_page_number }}">Siguiente</a>
     {% endif %}
   </div>
   {% endif %}
 </div>
+{% endif %}
 {% endblock %}

@@ -1,24 +1,37 @@
-"""Perfiles de filtrado: las reglas por equipo que hoy viven en PIVOT_MAESTRO.xlsx.
+"""Perfiles de filtrado: las búsquedas guardadas de cada usuario y sus reglas.
 
 Capa de modelos. La semántica de matching (boundaries, frases, bypass) NO está aquí:
-vive en `domain/matching.py`. Estos modelos solo persisten las reglas que el Admin
-edita y que `importar_pivot` puebla desde el Excel maestro del proyecto original.
+vive en `domain/matching.py`. Las reglas se administran desde el portal;
+`importar_pivot` queda como herramienta opcional de migración desde el Excel
+del proyecto original (ver decisiones.md, pivote de producto 2026-07-06).
 """
 
+from django.conf import settings
 from django.db import models
 
 
 class PerfilFiltro(models.Model):
-    """Perfil de un equipo (ej: TELECOM, ARQ, ELEC), equivalente a una hoja del PIVOT."""
+    """Una búsqueda guardada de un usuario: nombre + conjunto de reglas.
+
+    Históricamente representaba un "equipo" (hoja del PIVOT); hoy es la unidad
+    self-service del producto. El código identifica la búsqueda en URLs y API.
+    """
 
     codigo = models.CharField(max_length=30, unique=True)
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, default="")
     activo = models.BooleanField(default=True)
+    propietario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="busquedas",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
-        verbose_name = "perfil de filtro"
-        verbose_name_plural = "perfiles de filtro"
+        verbose_name = "búsqueda guardada"
+        verbose_name_plural = "búsquedas guardadas"
         ordering = ["codigo"]
 
     def __str__(self) -> str:

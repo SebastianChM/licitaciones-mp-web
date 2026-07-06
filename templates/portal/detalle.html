@@ -1,10 +1,10 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block titulo %}{{ licitacion.codigo_externo }} - Licitaciones MP{% endblock %}
 
 {% block contenido %}
 <div class="migas">
-  <a href="{% url 'portal:lista' %}?equipo={{ perfil.codigo }}">Bandeja {{ perfil.codigo }}</a>
+  <a href="{% url 'portal:lista' %}?perfil={{ perfil.codigo }}">Bandeja de {{ perfil.nombre }}</a>
   · <span class="codigo">{{ licitacion.codigo_externo }}</span>
 </div>
 
@@ -94,7 +94,7 @@
         {% if evaluacion_equipo.trazabilidad.inclusion %}
         <li class="ok">
           <span class="nodo"></span>
-          <div class="titulo-paso">Entró al filtro de {{ perfil.codigo }}</div>
+          <div class="titulo-paso">Entró a tu búsqueda</div>
           <div class="chips">
             {% for entrada in evaluacion_equipo.trazabilidad.inclusion %}<span class="chip inclusion">{{ entrada }}</span>{% endfor %}
           </div>
@@ -120,13 +120,13 @@
         {% endif %}
       </ul>
       {% else %}
-        <p class="sub">Este equipo aún no evalúa esta licitación (corre el comando <span class="codigo">evaluar</span>).</p>
+        <p class="sub">Tu búsqueda aún no evalúa esta licitación: usa "Re-evaluar ahora" en la bandeja.</p>
       {% endif %}
     </div>
 
     {% if otras_evaluaciones %}
     <div class="seccion">
-      <h2>Otros equipos</h2>
+      <h2>Otras búsquedas</h2>
       {% for evaluacion in otras_evaluaciones %}
         <span class="chip neutro">{{ evaluacion.perfil.codigo }} · {{ evaluacion.get_resultado_display }}</span>
       {% endfor %}
@@ -136,10 +136,10 @@
 
   <div class="tarjeta pegajoso">
     <div class="seccion panel-gestion">
-      <h2>Gestión de {{ perfil.codigo }}</h2>
+      <h2>Tu gestión</h2>
       <form method="post" action="{% url 'portal:actualizar-gestion' licitacion.codigo_externo %}">
         {% csrf_token %}
-        <input type="hidden" name="equipo" value="{{ perfil.codigo }}">
+        <input type="hidden" name="perfil" value="{{ perfil.codigo }}">
         <label for="{{ form.estado.id_for_label }}">Estado</label>
         {{ form.estado }}
         <label for="{{ form.notas.id_for_label }}">Notas</label>
@@ -159,3 +159,4 @@
   </div>
 </div>
 {% endblock %}
+

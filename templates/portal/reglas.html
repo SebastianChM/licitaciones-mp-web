@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block titulo %}Reglas de {{ busqueda.nombre }} - Licitaciones MP{% endblock %}
+
+{% block contenido %}
+<div class="migas">
+  <a href="{% url 'portal:lista' %}?perfil={{ busqueda.codigo }}">Bandeja</a>
+  · Reglas de <strong>{{ busqueda.nombre }}</strong>
+</div>
+
+<div class="pagina-head">
+  <h1>Reglas de "{{ busqueda.nombre }}"</h1>
+  <div class="sub">Así decide el filtro qué licitaciones te muestra. Los cambios se aplican al re-evaluar.</div>
+</div>
+
+<div class="acciones-busqueda">
+  <form method="post" action="{% url 'portal:evaluar-ahora' busqueda.codigo %}">
+    {% csrf_token %}
+    <button type="submit" class="boton primario">Re-evaluar ahora</button>
+  </form>
+  <form method="post" action="{% url 'portal:busqueda-eliminar' busqueda.codigo %}"
+        onsubmit="return confirm('¿Eliminar esta búsqueda con todas sus reglas y evaluaciones?');">
+    {% csrf_token %}
+    <button type="submit" class="boton fantasma peligro">Eliminar búsqueda</button>
+  </form>
+</div>
+
+<div class="tarjeta" style="margin-bottom:18px;">
+  <div class="seccion">
+    <h2>Agregar regla</h2>
+    <form method="post" class="form-regla">
+      {% csrf_token %}
+      <div>
+        <label for="{{ form.texto.id_for_label }}">Palabra o frase</label>
+        {{ form.texto }}
+      </div>
+      <div>
+        <label for="{{ form.tipo.id_for_label }}">Tipo</label>
+        {{ form.tipo }}
+      </div>
+      <div>
+        <label for="{{ form.campo.id_for_label }}">Campo (solo inclusión/exclusión)</label>
+        {{ form.campo }}
+      </div>
+      <button type="submit" class="boton">Agregar</button>
+    </form>
+    <p class="sub" style="margin:10px 0 0;">
+      Se normaliza automáticamente (acentos y mayúsculas): "fibra óptica" queda como FIBRA OPTICA.
+      Las siglas de hasta 4 letras (ITS, GPS, WAN) matchean solo como palabra completa.
+    </p>
+  </div>
+</div>
+
+{% for etiqueta, tipo, descripcion, reglas in grupos %}
+<div class="tarjeta grupo-reglas {% if not reglas and tipo == 'incluir' %}alerta{% endif %}">
+  <div class="seccion">
+    <h2>{{ etiqueta }} ({{ reglas|length }})</h2>
+    <p class="sub" style="margin:0 0 10px;">{{ descripcion }}</p>
+    {% if reglas %}
+      <div class="chips-reglas">
+        {% for regla in reglas %}
+          <span class="chip-regla {{ regla.tipo }}">
+            {{ regla.texto }}
+            {% if regla.campo %}<em>{{ regla.get_campo_display }}</em>{% endif %}
+            <form method="post" action="{% url 'portal:regla-eliminar' busqueda.codigo regla.pk %}">
+              {% csrf_token %}
+              <button type="submit" title="Eliminar regla" aria-label="Eliminar {{ regla.texto }}">&times;</button>
+            </form>
+          </span>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="sub">Sin reglas de este tipo{% if tipo == "incluir" %} — <strong>agrega al menos una para que la búsqueda produzca resultados</strong>{% endif %}.</p>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

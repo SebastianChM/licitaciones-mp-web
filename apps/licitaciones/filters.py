@@ -19,6 +19,9 @@ RESULTADOS_RELEVANTES = (
 
 
 class LicitacionFilter(django_filters.FilterSet):
+    perfil = django_filters.CharFilter(method="filtrar_por_evaluacion")
+    # Alias legado del pivote de producto (decisiones.md 2026-07-06): "equipo"
+    # sigue funcionando para clientes existentes; "perfil" es el nombre actual.
     equipo = django_filters.CharFilter(method="filtrar_por_evaluacion")
     resultado = django_filters.CharFilter(method="filtrar_por_evaluacion")
     confianza = django_filters.CharFilter(method="filtrar_por_evaluacion")
@@ -47,8 +50,9 @@ class LicitacionFilter(django_filters.FilterSet):
         """
         condiciones: dict[str, object] = {}
         datos = self.data
-        if datos.get("equipo"):
-            condiciones["evaluaciones__perfil__codigo"] = str(datos["equipo"]).upper()
+        codigo_perfil = datos.get("perfil") or datos.get("equipo")
+        if codigo_perfil:
+            condiciones["evaluaciones__perfil__codigo"] = str(codigo_perfil).upper()
         if datos.get("resultado"):
             condiciones["evaluaciones__resultado"] = datos["resultado"]
         if datos.get("confianza"):
@@ -58,7 +62,7 @@ class LicitacionFilter(django_filters.FilterSet):
 
         # Aplicar solo en la última pasada evita repetir el JOIN por cada parámetro.
         parametros_evaluacion = [
-            p for p in ("equipo", "resultado", "confianza", "relevantes") if datos.get(p)
+            p for p in ("perfil", "equipo", "resultado", "confianza", "relevantes") if datos.get(p)
         ]
         if not parametros_evaluacion or name != parametros_evaluacion[-1]:
             return queryset
