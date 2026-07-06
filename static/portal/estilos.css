@@ -154,7 +154,9 @@ a:hover { text-decoration: underline; }
 }
 .boton-salir:hover { background: rgba(255, 255, 255, 0.06); }
 
-.contenido { padding: 26px 34px 64px; max-width: 1160px; }
+/* Centrado dentro de la columna del grid: en pantallas anchas el espacio
+   sobrante se reparte a ambos lados en vez de acumularse a la derecha. */
+.contenido { padding: 26px 34px 64px; max-width: 1160px; width: 100%; margin: 0 auto; }
 
 /* ==========================================================================
    Encabezado de pagina
