@@ -43,3 +43,15 @@ el Excel del portal repite la licitación una vez por cada producto/servicio que
 no solo refrescos entre días. Limitación conocida a evaluar en M2: hoy `descripcion_producto`
 conserva solo el último ítem; si el matching por COMPONENTE pierde señal, se acumularán los
 ítems en un campo texto o tabla propia.
+
+## 2026-07-05 — Port del motor corrige bug latente del boost UNSPSC
+
+**Contexto:** en el original, `_TAXONOMIA_ALTA_N2` contiene frases CON acento
+("servicios profesionales de ingeniería") que se comparan contra columnas normalizadas
+SIN acentos; con o sin IGNORECASE, la í nunca matchea la I, así que el boost de Nivel 2
+no podía disparar (el de Nivel 1, "consultoria", sí funciona por estar des-acentuado).
+**Decisión:** en `domain/matching.py` las constantes del boost pasan por `normalizar_texto`
+igual que los campos, con test que lo demuestra (`test_boost_unspsc_nivel2_dispara...`).
+**Consecuencias:** el port NO es bit a bit idéntico al original: es fiel a la INTENCIÓN
+documentada del original. Algunas licitaciones que allá quedaban en REVISAR aquí quedan
+en ALTA, que es el comportamiento diseñado.

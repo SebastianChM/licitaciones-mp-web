@@ -6,6 +6,7 @@ puede refrescar sin riesgo. El estado de trabajo humano NO vive aquí sino en
 """
 
 from django.db import models
+from django.utils import timezone
 
 
 class Licitacion(models.Model):
@@ -108,7 +109,9 @@ class EvaluacionFiltro(models.Model):
     )
     # Qué keywords matchearon y en qué campo: {"inclusion": [...], "exclusion": [...], ...}
     trazabilidad = models.JSONField(default=dict, blank=True)
-    evaluada_en = models.DateTimeField(auto_now=True)
+    # default (callable) y no auto_now: el upsert masivo de `evaluar` usa bulk_create,
+    # que no pasa por save() y por lo tanto auto_now nunca se aplicaría.
+    evaluada_en = models.DateTimeField(default=timezone.now)
 
     class Meta:
         verbose_name = "evaluación de filtro"

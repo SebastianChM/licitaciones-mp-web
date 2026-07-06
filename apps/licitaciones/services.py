@@ -6,17 +6,28 @@ apps.gestion (P4): los hechos se refrescan, el trabajo humano no se toca.
 
 import datetime
 import logging
+from collections import Counter
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
+from django.utils import timezone
+
 from apps.catalogo.models import Organismo, Rubro
 from apps.licitaciones.ingesta import FilaBulk
-from apps.licitaciones.models import Licitacion
+from apps.licitaciones.models import EvaluacionFiltro, Licitacion
 from apps.ops.models import EjecucionPipeline
+from apps.perfiles.models import PalabraIntencion, PerfilFiltro, ReglaKeyword
+from domain import matching
 
 logger = logging.getLogger(__name__)
 
 MONEDAS_CONOCIDAS = frozenset(Licitacion.Moneda.values)
+
+# Una keyword de exclusión que por sí sola mata más de este % del subconjunto
+# post-inclusión es demasiado genérica (mismo umbral que el proyecto original).
+UMBRAL_EXCLUSION_TOXICA_PCT = 10.0
+# Tamaño de lote para el upsert masivo de evaluaciones.
+BATCH_EVALUACIONES = 500
 
 
 @dataclass
@@ -134,7 +145,7 @@ def ingestar_filas(filas: list[FilaBulk], ejecucion: EjecucionPipeline) -> Resul
         else:
             resultado.actualizadas += 1
 
-        # add(), no set(): el bulk trae una fila POR ITEM de la licitación, y la
+        # add(), no set(): el bulk trae una fila POR ITEM de la licitacion, y la
         # taxonomía de todos los ítems se acumula (hallazgo de la primera ingesta
         # real: 17.812 filas → 4.174 licitaciones; ver docs/decisiones.md).
         rubros = [
@@ -146,3 +157,148 @@ def ingestar_filas(filas: list[FilaBulk], ejecucion: EjecucionPipeline) -> Resul
             licitacion.rubros.add(*rubros)
 
     return resultado
+
+
+@dataclass
+class ResultadoEvaluacion:
+    """Métricas de una corrida de evaluación por perfil (O5)."""
+
+    perfil: str = ""
+    total: int = 0
+    por_resultado: dict[str, int] = field(default_factory=dict)
+    confianza_alta: int = 0
+    confianza_revisar: int = 0
+    top_keywords_exclusion: list[tuple[str, int]] = field(default_factory=list)
+    exclusiones_toxicas: list[tuple[str, int, float]] = field(default_factory=list)
+
+    def como_dict(self) -> dict[str, object]:
+        return {
+            "perfil": self.perfil,
+            "total": self.total,
+            "por_resultado": self.por_resultado,
+            "confianza_alta": self.confianza_alta,
+            "confianza_revisar": self.confianza_revisar,
+            "top_keywords_exclusion": self.top_keywords_exclusion,
+            "exclusiones_toxicas": self.exclusiones_toxicas,
+        }
+
+
+def construir_reglas(perfil: PerfilFiltro) -> matching.ReglasEquipo:
+    """Traduce las reglas persistidas de un perfil al dominio puro."""
+    incluir: dict[str, list[str]] = {}
+    excluir: dict[str, list[str]] = {}
+    bypass: list[str] = []
+    dura: list[str] = []
+    for regla in perfil.reglas.filter(activa=True):
+        if regla.tipo == ReglaKeyword.Tipo.INCLUIR:
+            incluir.setdefault(regla.campo, []).append(regla.texto)
+        elif regla.tipo == ReglaKeyword.Tipo.EXCLUIR:
+            excluir.setdefault(regla.campo, []).append(regla.texto)
+        elif regla.tipo == ReglaKeyword.Tipo.BYPASS:
+            bypass.append(regla.texto)
+        elif regla.tipo == ReglaKeyword.Tipo.EXCLUSION_DURA:
+            dura.append(regla.texto)
+
+    intencion = PalabraIntencion.objects.filter(activa=True)
+    return matching.ReglasEquipo(
+        incluir={campo: tuple(textos) for campo, textos in incluir.items()},
+        excluir={campo: tuple(textos) for campo, textos in excluir.items()},
+        bypass=tuple(bypass),
+        exclusion_dura=tuple(dura),
+        intencion_requerida=tuple(
+            intencion.filter(tipo=PalabraIntencion.Tipo.REQUERIDA).values_list("texto", flat=True)
+        ),
+        intencion_vetada=tuple(
+            intencion.filter(tipo=PalabraIntencion.Tipo.VETADA).values_list("texto", flat=True)
+        ),
+    )
+
+
+def _campos_de(licitacion: Licitacion) -> matching.CamposLicitacion:
+    niveles = {rubro.nivel: rubro.nombre for rubro in licitacion.rubros.all()}
+    return matching.CamposLicitacion(
+        nombre=licitacion.nombre,
+        descripcion=licitacion.descripcion,
+        nivel1=niveles.get(1, ""),
+        nivel2=niveles.get(2, ""),
+        nivel3=niveles.get(3, ""),
+        generico=licitacion.generico,
+        organismo=licitacion.organismo.nombre if licitacion.organismo else "",
+        tipo_adquisicion=licitacion.tipo_adquisicion,
+        descripcion_producto=licitacion.descripcion_producto,
+    )
+
+
+def _detectar_toxicas(
+    conteo_exclusion: Counter, universo_post_inclusion: int
+) -> list[tuple[str, int, float]]:
+    """Port de _registrar_top_keywords: keywords que solas matan >umbral% del universo."""
+    if universo_post_inclusion == 0:
+        return []
+    limite = (UMBRAL_EXCLUSION_TOXICA_PCT / 100.0) * universo_post_inclusion
+    toxicas = [
+        (kw, n, round(n / universo_post_inclusion * 100.0, 2))
+        for kw, n in conteo_exclusion.items()
+        if n >= limite
+    ]
+    toxicas.sort(key=lambda t: t[1], reverse=True)
+    return toxicas
+
+
+def evaluar_perfil(perfil: PerfilFiltro) -> ResultadoEvaluacion:
+    """Evalúa TODAS las licitaciones contra un perfil y persiste EvaluacionFiltro.
+
+    Upsert masivo por (licitacion, perfil): re-ejecutar tras cambiar reglas
+    re-evalúa sin duplicar (R3). El llamador es dueño de la transacción (O3).
+    """
+    reglas = construir_reglas(perfil)
+    resultado = ResultadoEvaluacion(perfil=perfil.codigo)
+    conteo_resultados: Counter = Counter()
+    conteo_exclusion: Counter = Counter()
+    ahora = timezone.now()
+    lote: list[EvaluacionFiltro] = []
+
+    queryset = Licitacion.objects.select_related("organismo").prefetch_related("rubros")
+    for licitacion in queryset.iterator(chunk_size=BATCH_EVALUACIONES):
+        evaluacion = matching.evaluar(_campos_de(licitacion), reglas)
+        conteo_resultados[evaluacion.resultado] += 1
+        if evaluacion.confianza == matching.CONFIANZA_ALTA:
+            resultado.confianza_alta += 1
+        elif evaluacion.confianza == matching.CONFIANZA_REVISAR:
+            resultado.confianza_revisar += 1
+        for entrada in evaluacion.trazabilidad.get("exclusion", []):
+            keyword = entrada.rsplit(" (", 1)[0]
+            conteo_exclusion[keyword] += 1
+
+        lote.append(
+            EvaluacionFiltro(
+                licitacion=licitacion,
+                perfil=perfil,
+                resultado=evaluacion.resultado,
+                confianza=evaluacion.confianza,
+                trazabilidad=evaluacion.trazabilidad,
+                evaluada_en=ahora,
+            )
+        )
+        resultado.total += 1
+        if len(lote) >= BATCH_EVALUACIONES:
+            _guardar_lote(lote)
+            lote = []
+    if lote:
+        _guardar_lote(lote)
+
+    universo_post_inclusion = resultado.total - conteo_resultados[matching.RESULTADO_SIN_MATCH]
+    resultado.por_resultado = dict(conteo_resultados)
+    resultado.top_keywords_exclusion = conteo_exclusion.most_common(10)
+    resultado.exclusiones_toxicas = _detectar_toxicas(conteo_exclusion, universo_post_inclusion)
+    return resultado
+
+
+def _guardar_lote(lote: list[EvaluacionFiltro]) -> None:
+    """Upsert por la constraint (licitacion, perfil): crea o actualiza en un viaje."""
+    EvaluacionFiltro.objects.bulk_create(
+        lote,
+        update_conflicts=True,
+        unique_fields=["licitacion", "perfil"],
+        update_fields=["resultado", "confianza", "trazabilidad", "evaluada_en"],
+    )
