@@ -1,10 +1,26 @@
 from django.contrib import admin
+from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse
 
+from .export import construir_excel, nombre_archivo
 from .models import EvaluacionFiltro, Licitacion
+
+TIPO_CONTENIDO_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 @admin.register(Licitacion)
 class LicitacionAdmin(admin.ModelAdmin):
+    actions = ["exportar_a_excel"]
+
+    @admin.action(description="Exportar selección a Excel")
+    def exportar_a_excel(
+        self, request: HttpRequest, queryset: QuerySet[Licitacion]
+    ) -> HttpResponse:
+        contenido = construir_excel(queryset.select_related("organismo"))
+        respuesta = HttpResponse(contenido, content_type=TIPO_CONTENIDO_XLSX)
+        respuesta["Content-Disposition"] = f'attachment; filename="{nombre_archivo()}"'
+        return respuesta
+
     list_display = (
         "codigo_externo",
         "nombre_corto",
