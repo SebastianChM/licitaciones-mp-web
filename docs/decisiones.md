@@ -68,6 +68,23 @@ filtros clicables; la trazabilidad se presenta como pipeline de pasos y no como 
 chips. Tipografía Inter variable self-hosted (un solo woff2 estático, licencia OFL, sin
 CDN) con numerales tabulares para códigos y montos.
 
+## 2026-07-06 — Enriquecimiento: la BD reemplaza a los checkpoints JSONL
+
+**Contexto:** la etapa 3 del original persiste checkpoints JSONL (hash del dataset,
+recuperación de registros exitosos) para reanudar tras cortes, porque su almacenamiento
+son archivos. Aquí la fuente de verdad es la BD.
+**Decisión:** el checkpoint ES el modelo: `enriquecida_en` vacío = pendiente. El comando
+`enriquecer` procesa `relevantes sin enriquecer` y guarda cada licitación apenas llega su
+ficha; interrumpir y relanzar retoma exactamente donde quedó, sin archivos auxiliares.
+Las licitaciones que la API no indexa ("Listado vacío") se marcan con
+`raw_api.sin_datos` para no reintentarlas a diario. Cada ficha se guarda en su propia
+escritura (excepción deliberada a O3: a ~8 req/min, una transacción global perdería
+media hora de trabajo ante cualquier corte; el ítem es la unidad atómica correcta).
+**Consecuencias:** menos piezas móviles que el original (sin archivos de checkpoint, sin
+hash de dataset, sin limpieza por retención); "reanudar" y "correr de nuevo" son el mismo
+comando. Solo se enriquecen las relevantes: el universo completo tomaría más de un día al
+ritmo del rate limit.
+
 ## 2026-07-05 — Port del motor corrige bug latente del boost UNSPSC
 
 **Contexto:** en el original, `_TAXONOMIA_ALTA_N2` contiene frases CON acento

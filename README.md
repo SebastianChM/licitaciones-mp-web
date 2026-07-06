@@ -30,9 +30,10 @@ estructurales:
 ChileCompra (bulk XLSX diario)          API oficial MP (JSON)
         |                                     |
         v                                     v
-  manage.py ingestar_bulk              manage.py enriquecer (roadmap)
-  (upsert idempotente,                 manage.py sincronizar_estados (roadmap)
-   ZIP-unwrap, header dinamico)
+  manage.py ingestar_bulk              manage.py enriquecer
+  (upsert idempotente,                 (ficha completa de las relevantes:
+   ZIP-unwrap, header dinamico)         delay 7s, circuit breaker,
+                                        checkpoint en BD, reanudable)
         |
         v
   +--------------------- BD (fuente de verdad) ----------------------+
@@ -74,6 +75,7 @@ Cargar datos y evaluar:
 python manage.py importar_pivot ruta/al/PIVOT_MAESTRO.xlsx  # reglas por equipo
 python manage.py ingestar_bulk                              # bulk diario del portal
 python manage.py evaluar                                    # motor de filtrado
+python manage.py enriquecer                                 # ficha oficial de las relevantes (requiere ticket)
 python manage.py runserver
 ```
 
@@ -112,8 +114,6 @@ coverage run -m pytest && coverage report  # gate 85% (actual: 93%)
 
 ## Roadmap
 
-- `manage.py enriquecer`: detalle completo por licitación vía API oficial (delay 7s,
-  reanudable con checkpoints, como el original)
 - `manage.py sincronizar_estados`: refresco intradía de estado/fecha de cierre
 - `TipoCambio` alimentado por CMF/Frankfurter para conversión CLP auditable
 - Deploy con PostgreSQL

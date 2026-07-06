@@ -49,6 +49,37 @@
       </dl>
     </div>
 
+    {% if licitacion.raw_api and not licitacion.raw_api.sin_datos %}
+    <div class="seccion">
+      <h2>Ficha oficial (API Mercado Público)</h2>
+      <dl class="ficha">
+        <div class="campo"><dt>Estado oficial</dt><dd>{{ licitacion.raw_api.estado|default:"—" }}</dd></div>
+        <div class="campo"><dt>Duración del contrato</dt>
+          <dd>{% if licitacion.raw_api.duracion_contrato %}{{ licitacion.raw_api.duracion_contrato }} {{ licitacion.raw_api.unidad_tiempo_contrato }}{% else %}—{% endif %}</dd></div>
+        <div class="campo"><dt>Unidad compradora</dt><dd>{{ licitacion.raw_api.comprador.unidad|default:"—" }}</dd></div>
+        <div class="campo"><dt>Comuna</dt><dd>{{ licitacion.raw_api.comprador.comuna|default:"—" }}</dd></div>
+        <div class="campo"><dt>Fin de preguntas</dt><dd>{{ licitacion.raw_api.fechas.final_preguntas|default:"—" }}</dd></div>
+        <div class="campo"><dt>Respuestas</dt><dd>{{ licitacion.raw_api.fechas.publicacion_respuestas|default:"—" }}</dd></div>
+        <div class="campo"><dt>Apertura técnica</dt><dd>{{ licitacion.raw_api.fechas.apertura_tecnica|default:"—" }}</dd></div>
+        <div class="campo"><dt>Adjudicación estimada</dt><dd>{{ licitacion.raw_api.fechas.adjudicacion|default:"—" }}</dd></div>
+        <div class="campo"><dt>Tipo</dt><dd>{% if licitacion.raw_api.es_obra %}Ejecución de obra{% else %}Servicio / consultoría{% endif %}</dd></div>
+        <div class="campo"><dt>Adjuntos</dt><dd>{{ licitacion.raw_api.adjuntos_total }} documento{{ licitacion.raw_api.adjuntos_total|pluralize }}</dd></div>
+      </dl>
+      {% if licitacion.raw_api.items %}
+      <h2 style="margin-top:16px;">Ítems solicitados ({{ licitacion.raw_api.items_total }})</h2>
+      {% for item in licitacion.raw_api.items|slice:":8" %}
+        <span class="pill" title="{{ item.categoria }}">{{ item.producto|default:item.categoria }}</span>
+      {% endfor %}
+      {% if licitacion.raw_api.items_total > 8 %}<span class="pill">+{{ licitacion.raw_api.items_total|add:"-8" }} más</span>{% endif %}
+      {% endif %}
+    </div>
+    {% elif not licitacion.enriquecida_en %}
+    <div class="seccion">
+      <h2>Ficha oficial (API Mercado Público)</h2>
+      <p class="sub">Aún sin enriquecer: corre <span class="codigo">manage.py enriquecer</span> para traer fechas del ciclo completo, comprador e ítems.</p>
+    </div>
+    {% endif %}
+
     {% if licitacion.rubros.all %}
     <div class="seccion chips-taxonomia">
       <h2>Taxonomía</h2>

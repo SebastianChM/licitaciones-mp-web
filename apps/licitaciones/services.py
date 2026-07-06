@@ -6,13 +6,17 @@ apps.gestion (P4): los hechos se refrescan, el trabajo humano no se toca.
 
 import datetime
 import logging
+import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from apps.catalogo.models import Organismo, Rubro
+from apps.licitaciones.api_mp import ClienteDetalleMP
 from apps.licitaciones.ingesta import FilaBulk
 from apps.licitaciones.models import EvaluacionFiltro, Licitacion
 from apps.ops.models import EjecucionPipeline
@@ -302,3 +306,143 @@ def _guardar_lote(lote: list[EvaluacionFiltro]) -> None:
         unique_fields=["licitacion", "perfil"],
         update_fields=["resultado", "confianza", "trazabilidad", "evaluada_en"],
     )
+
+
+# Fallos de RED consecutivos que activan la pausa del circuit breaker (port etapa3).
+CB_UMBRAL_FALLOS = 5
+CB_PAUSA_SEGUNDOS = 60
+
+
+@dataclass
+class ResultadoEnriquecimiento:
+    """Métricas de una corrida de enriquecimiento (O5)."""
+
+    procesadas: int = 0
+    enriquecidas: int = 0
+    sin_datos: int = 0
+    fallos_red: int = 0
+
+    def como_dict(self) -> dict[str, object]:
+        return {
+            "procesadas": self.procesadas,
+            "enriquecidas": self.enriquecidas,
+            "sin_datos": self.sin_datos,
+            "fallos_red": self.fallos_red,
+        }
+
+
+def licitaciones_pendientes_de_enriquecer() -> "QuerySet[Licitacion]":
+    """Las relevantes para algún perfil que aún no tienen ficha de la API.
+
+    La BD es el checkpoint: enriquecida_en vacío = pendiente. Interrumpir y
+    relanzar el comando retoma exactamente donde quedó (O4), sin archivos JSONL.
+    """
+    return (
+        Licitacion.objects.filter(
+            enriquecida_en__isnull=True,
+            evaluaciones__resultado__in=(
+                EvaluacionFiltro.Resultado.INCLUIDA,
+                EvaluacionFiltro.Resultado.BYPASS,
+            ),
+        )
+        .distinct()
+        .order_by("fecha_cierre", "codigo_externo")
+    )
+
+
+def enriquecer_licitaciones(
+    licitaciones: "QuerySet[Licitacion]",
+    cliente: "ClienteDetalleMP",
+    delay_segundos: float,
+    dormir: "Callable[[float], None]" = time.sleep,
+) -> ResultadoEnriquecimiento:
+    """Completa cada licitación con su ficha oficial, al ritmo que la API permite.
+
+    Cada licitación se guarda apenas llega (el progreso parcial ES el objetivo:
+    a ~8 req/min, esperar una transacción global significaría perder 35 minutos
+    de trabajo ante cualquier corte — ver decisiones.md). Fallos de red activan
+    el circuit breaker; "Listado vacío" es normal y solo se registra.
+    """
+    resultado = ResultadoEnriquecimiento()
+    fallos_consecutivos = 0
+
+    for licitacion in licitaciones.iterator(chunk_size=100):
+        detalle = cliente.consultar(licitacion.codigo_externo)
+        resultado.procesadas += 1
+
+        if detalle.ok:
+            _aplicar_detalle(licitacion, detalle.datos)
+            resultado.enriquecidas += 1
+            fallos_consecutivos = 0
+        elif detalle.fallo_red:
+            resultado.fallos_red += 1
+            fallos_consecutivos += 1
+            logger.warning(
+                "Sin ficha para %s (%s); el proceso continúa.",
+                licitacion.codigo_externo,
+                detalle.error,
+            )
+            if fallos_consecutivos >= CB_UMBRAL_FALLOS:
+                logger.warning(
+                    "%s fallos de red consecutivos: pausa de %ss para que la API se recupere.",
+                    fallos_consecutivos,
+                    CB_PAUSA_SEGUNDOS,
+                )
+                dormir(CB_PAUSA_SEGUNDOS)
+                cliente.renovar_sesion()
+                fallos_consecutivos = 0
+        else:
+            # Sin datos en la API (no indexada): se marca para no reintentarla a diario.
+            licitacion.raw_api = {"sin_datos": True, "motivo": detalle.error}
+            licitacion.enriquecida_en = timezone.now()
+            licitacion.save(update_fields=["raw_api", "enriquecida_en"])
+            resultado.sin_datos += 1
+            fallos_consecutivos = 0
+
+        dormir(delay_segundos)
+
+    return resultado
+
+
+def _aplicar_detalle(licitacion: Licitacion, datos: dict) -> None:
+    """Proyecta la ficha de la API sobre el modelo. La API manda sobre el bulk:
+    es la fuente de detalle (montos y fechas del ciclo completo)."""
+    licitacion.raw_api = datos
+    licitacion.enriquecida_en = timezone.now()
+
+    monto = _parsear_monto(datos.get("monto_estimado"))
+    if monto is not None:
+        licitacion.monto_estimado = monto
+    moneda = str(datos.get("moneda") or "").strip().upper()
+    if moneda in MONEDAS_CONOCIDAS:
+        licitacion.moneda = moneda
+    if datos.get("estado"):
+        licitacion.estado_fuente = str(datos["estado"])[:60]
+    if len(str(datos.get("descripcion") or "")) > len(licitacion.descripcion):
+        licitacion.descripcion = str(datos["descripcion"])
+
+    fechas = datos.get("fechas") or {}
+    fecha_pub = _parsear_fecha(fechas.get("publicacion"))
+    if fecha_pub is not None:
+        licitacion.fecha_publicacion = fecha_pub
+    fecha_cierre = _parsear_fecha_hora(fechas.get("cierre"))
+    if fecha_cierre is not None:
+        licitacion.fecha_cierre = fecha_cierre
+
+    licitacion.save(
+        update_fields=[
+            "raw_api",
+            "enriquecida_en",
+            "monto_estimado",
+            "moneda",
+            "estado_fuente",
+            "descripcion",
+            "fecha_publicacion",
+            "fecha_cierre",
+        ]
+    )
+
+    comuna_region = datos.get("comprador") or {}
+    if licitacion.organismo and not licitacion.organismo.region and comuna_region.get("region"):
+        licitacion.organismo.region = str(comuna_region["region"])[:120]
+        licitacion.organismo.save(update_fields=["region"])
