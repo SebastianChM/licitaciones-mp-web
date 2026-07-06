@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ licitacion.codigo_externo }} - Licitaciones MP{% endblock %}
+
+{% block contenido %}
+<div class="encabezado-pagina">
+  <h1>{{ licitacion.nombre }}</h1>
+</div>
+<p class="sub" style="margin-top:-8px; margin-bottom:18px;">
+  <span class="codigo">{{ licitacion.codigo_externo }}</span>
+  {% if perfil %} · viendo como equipo <strong>{{ perfil.codigo }}</strong>{% endif %}
+  · <a href="{% url 'portal:lista' %}?equipo={{ perfil.codigo }}">Volver al listado</a>
+</p>
+
+<div class="columnas">
+  <div class="tarjeta">
+    <div class="seccion ficha">
+      <h2>Datos de la licitación</h2>
+      <dl>
+        <dt>Organismo</dt><dd>{{ licitacion.organismo|default:"Sin información" }}</dd>
+        {% if licitacion.organismo.region %}<dt>Región</dt><dd>{{ licitacion.organismo.region }}</dd>{% endif %}
+        {% if licitacion.descripcion %}<dt>Descripción</dt><dd>{{ licitacion.descripcion }}</dd>{% endif %}
+        <dt>Monto estimado</dt>
+        <dd>{% if licitacion.monto_estimado %}{{ licitacion.monto_estimado|floatformat:"0g" }} {{ licitacion.moneda|default:"" }}{% else %}No informado{% endif %}</dd>
+        <dt>Publicación</dt><dd>{{ licitacion.fecha_publicacion|date:"d M Y"|default:"—" }}</dd>
+        <dt>Cierre</dt>
+        <dd>
+          {{ licitacion.fecha_cierre|date:"d M Y H:i"|default:"—" }}
+          {% if licitacion.fecha_cierre and licitacion.fecha_cierre < hoy %}<span class="badge urgente">Cerrada</span>{% endif %}
+        </dd>
+        {% if licitacion.rubros.all %}
+        <dt>Taxonomía</dt>
+        <dd>{% for rubro in licitacion.rubros.all %}<span class="chip">{{ rubro }}</span>{% endfor %}</dd>
+        {% endif %}
+        {% if licitacion.url_ficha %}<dt>Ficha oficial</dt><dd><a href="{{ licitacion.url_ficha }}" rel="noopener">Ver en Mercado Público</a></dd>{% endif %}
+      </dl>
+    </div>
+
+    <div class="seccion">
+      <h2>Por qué está aquí (trazabilidad del filtro)</h2>
+      {% if evaluacion_equipo %}
+        <p>
+          {% if evaluacion_equipo.resultado == "bypass" %}
+            <span class="badge bypass">Rescatada por bypass</span>
+          {% else %}
+            <span class="badge incluida">Incluida</span>
+          {% endif %}
+          {% if evaluacion_equipo.confianza == "alta" %}<span class="badge alta">Confianza alta</span>
+          {% elif evaluacion_equipo.confianza == "revisar" %}<span class="badge revisar">Por revisar</span>{% endif %}
+        </p>
+        {% if evaluacion_equipo.trazabilidad.inclusion %}
+          <p><strong>Entró por:</strong><br>
+          {% for entrada in evaluacion_equipo.trazabilidad.inclusion %}<span class="chip inclusion">{{ entrada }}</span>{% endfor %}</p>
+        {% endif %}
+        {% if evaluacion_equipo.trazabilidad.exclusion %}
+          <p><strong>Una exclusión la bloqueaba:</strong><br>
+          {% for entrada in evaluacion_equipo.trazabilidad.exclusion %}<span class="chip exclusion">{{ entrada }}</span>{% endfor %}</p>
+        {% endif %}
+        {% if evaluacion_equipo.trazabilidad.bypass %}
+          <p><strong>La rescató:</strong><br>
+          {% for entrada in evaluacion_equipo.trazabilidad.bypass %}<span class="chip bypass">{{ entrada }}</span>{% endfor %}</p>
+        {% endif %}
+      {% else %}
+        <p class="sub">Este equipo no tiene una evaluación para esta licitación (corre el comando evaluar).</p>
+      {% endif %}
+    </div>
+
+    {% if licitacion.evaluaciones.all|length > 1 %}
+    <div class="seccion">
+      <h2>Otros equipos</h2>
+      {% for evaluacion in licitacion.evaluaciones.all %}
+        {% if not perfil or evaluacion.perfil_id != perfil.pk %}
+          <span class="chip">{{ evaluacion.perfil.codigo }}: {{ evaluacion.get_resultado_display }}</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="tarjeta">
+    <div class="seccion panel-gestion">
+      <h2>Gestión del equipo {{ perfil.codigo }}</h2>
+      <form method="post" action="{% url 'portal:actualizar-gestion' licitacion.codigo_externo %}">
+        {% csrf_token %}
+        <input type="hidden" name="equipo" value="{{ perfil.codigo }}">
+        <label for="{{ form.estado.id_for_label }}">Estado</label>
+        {{ form.estado }}
+        <label for="{{ form.notas.id_for_label }}">Notas</label>
+        {{ form.notas }}
+        <button type="submit" class="boton">Guardar</button>
+      </form>
+      {% if gestion %}
+        <p class="meta-gestion">
+          Última actualización: {{ gestion.updated_at|date:"d M Y H:i" }}
+          {% if gestion.actualizado_por %} por {{ gestion.actualizado_por.username }}{% endif %}
+          {% if gestion.asignado_a %} · asignada a {{ gestion.asignado_a.username }}{% endif %}
+        </p>
+      {% else %}
+        <p class="meta-gestion">Esta licitación aún no tiene gestión de tu equipo. Al guardar, quedará asignada a ti.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.licitaciones",
     "apps.gestion",
     "apps.ops",
+    "apps.portal",
 ]
 
 MIDDLEWARE = [
@@ -122,6 +123,11 @@ USE_TZ = True  # almacenamiento siempre en UTC; TIME_ZONE solo para presentació
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "portal:lista"
+LOGOUT_REDIRECT_URL = "login"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

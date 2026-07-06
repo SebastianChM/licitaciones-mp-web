@@ -1,0 +1,29 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-cl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Licitaciones MP{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'portal/estilos.css' %}">
+</head>
+<body>
+<header class="topbar">
+  <a class="marca" href="{% url 'portal:lista' %}">Licitaciones<span>MP</span></a>
+  <nav>
+    <a href="{% url 'portal:lista' %}">Relevantes</a>
+    <a href="/api/licitaciones/">API</a>
+    {% if user.is_staff %}<a href="/admin/">Administración</a>{% endif %}
+  </nav>
+  <div class="usuario">
+    <span>{{ user.username }}</span>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="boton-salir">Salir</button>
+    </form>
+  </div>
+</header>
+<main class="contenedor">
+  {% block contenido %}{% endblock %}
+</main>
+</body>
+</html>

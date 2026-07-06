@@ -13,6 +13,8 @@ router.register("licitaciones", LicitacionViewSet, basename="licitacion")
 router.register("gestiones", GestionLicitacionViewSet, basename="gestion")
 
 urlpatterns = [
+    path("", include("apps.portal.urls")),
+    path("accounts/", include("django.contrib.auth.urls")),
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("api/token/", obtain_auth_token, name="api-token"),

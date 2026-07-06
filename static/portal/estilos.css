@@ -1,0 +1,291 @@
+/* Design system del portal — un solo archivo, custom properties, sin framework.
+   Paleta sobria de producto interno: fondo neutro claro, un azul institucional
+   como acento y semaforo funcional (verde=alta, ambar=revisar, rojo=urgente). */
+
+:root {
+  --color-fondo: #f4f6f9;
+  --color-superficie: #ffffff;
+  --color-borde: #e3e8ef;
+  --color-texto: #1a2332;
+  --color-texto-suave: #5b6b7f;
+  --color-acento: #1f4e79;
+  --color-acento-hover: #163a5c;
+  --color-acento-suave: #e8f0f8;
+  --verde: #1e7d43;
+  --verde-suave: #e2f4e8;
+  --ambar: #925f00;
+  --ambar-suave: #fdf1d7;
+  --rojo: #b3261e;
+  --rojo-suave: #fbe9e7;
+  --gris-suave: #eef1f5;
+  --radio: 10px;
+  --sombra: 0 1px 3px rgba(26, 35, 50, 0.08), 0 4px 14px rgba(26, 35, 50, 0.05);
+  --fuente: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--fuente);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+a { color: var(--color-acento); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---------- Barra superior ---------- */
+
+.topbar {
+  background: var(--color-acento);
+  color: #fff;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 58px;
+}
+
+.topbar .marca {
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.2px;
+  color: #fff;
+}
+
+.topbar .marca span { opacity: 0.65; font-weight: 400; }
+
+.topbar nav { display: flex; gap: 18px; }
+.topbar nav a { color: rgba(255, 255, 255, 0.85); font-size: 14px; }
+.topbar nav a:hover { color: #fff; text-decoration: none; }
+
+.topbar .usuario {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.boton-salir {
+  background: rgba(255, 255, 255, 0.14);
+  border: none;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.boton-salir:hover { background: rgba(255, 255, 255, 0.25); }
+
+/* ---------- Contenedor ---------- */
+
+.contenedor { max-width: 1180px; margin: 0 auto; padding: 26px 28px 60px; }
+
+.encabezado-pagina {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.encabezado-pagina h1 { font-size: 22px; margin: 0; }
+.encabezado-pagina .sub { color: var(--color-texto-suave); font-size: 14px; }
+
+/* ---------- Tarjetas de estadisticas ---------- */
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
+
+.stat {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 14px 18px;
+  box-shadow: var(--sombra);
+}
+.stat .valor { font-size: 26px; font-weight: 700; }
+.stat .etiqueta { color: var(--color-texto-suave); font-size: 13px; }
+.stat.alta .valor { color: var(--verde); }
+.stat.revisar .valor { color: var(--ambar); }
+.stat.urgente .valor { color: var(--rojo); }
+
+/* ---------- Filtros ---------- */
+
+.filtros {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+  box-shadow: var(--sombra);
+}
+
+.filtros label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.filtros select,
+.filtros input[type="text"],
+.panel-gestion select,
+.panel-gestion textarea {
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid var(--color-borde);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--color-texto);
+  min-width: 170px;
+}
+
+.filtros input[type="text"] { min-width: 260px; }
+
+.boton {
+  font: inherit;
+  background: var(--color-acento);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.boton:hover { background: var(--color-acento-hover); }
+.boton.secundario { background: var(--gris-suave); color: var(--color-texto); }
+
+/* ---------- Tabla ---------- */
+
+.tarjeta {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+}
+
+table.listado { width: 100%; border-collapse: collapse; }
+
+.listado th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-texto-suave);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-borde);
+  background: #fafbfd;
+}
+
+.listado td { padding: 13px 16px; border-bottom: 1px solid var(--color-borde); vertical-align: top; }
+.listado tr:last-child td { border-bottom: none; }
+.listado tr:hover td { background: var(--color-acento-suave); }
+
+.listado .nombre { font-weight: 600; max-width: 420px; }
+.listado .organismo { color: var(--color-texto-suave); font-size: 13px; margin-top: 2px; }
+.listado .codigo { font-family: Consolas, monospace; font-size: 13px; color: var(--color-texto-suave); }
+
+/* ---------- Badges y chips ---------- */
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge.alta { background: var(--verde-suave); color: var(--verde); }
+.badge.revisar { background: var(--ambar-suave); color: var(--ambar); }
+.badge.na { background: var(--gris-suave); color: var(--color-texto-suave); }
+.badge.bypass { background: var(--ambar-suave); color: var(--ambar); }
+.badge.incluida { background: var(--verde-suave); color: var(--verde); }
+.badge.urgente { background: var(--rojo-suave); color: var(--rojo); }
+.badge.estado { background: var(--color-acento-suave); color: var(--color-acento); }
+
+.chip {
+  display: inline-block;
+  background: var(--gris-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: 6px;
+  padding: 3px 9px;
+  margin: 2px 4px 2px 0;
+  font-size: 12.5px;
+}
+.chip.inclusion { background: var(--verde-suave); border-color: transparent; color: var(--verde); }
+.chip.exclusion { background: var(--rojo-suave); border-color: transparent; color: var(--rojo); }
+.chip.bypass { background: var(--ambar-suave); border-color: transparent; color: var(--ambar); }
+
+/* ---------- Detalle ---------- */
+
+.columnas { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .columnas { grid-template-columns: 1fr; } }
+
+.seccion { padding: 18px 22px; }
+.seccion + .seccion { border-top: 1px solid var(--color-borde); }
+.seccion h2 { font-size: 15px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-texto-suave); }
+
+.ficha dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--color-texto-suave); margin-top: 12px; }
+.ficha dd { margin: 2px 0 0; }
+
+.panel-gestion label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+.panel-gestion select, .panel-gestion textarea { width: 100%; }
+.panel-gestion .boton { margin-top: 14px; width: 100%; }
+.meta-gestion { font-size: 12.5px; color: var(--color-texto-suave); margin-top: 10px; }
+
+/* ---------- Paginacion ---------- */
+
+.paginacion { display: flex; gap: 8px; justify-content: center; padding: 18px; }
+.paginacion a, .paginacion span {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie);
+  font-size: 13px;
+}
+.paginacion .actual { background: var(--color-acento); color: #fff; border-color: var(--color-acento); }
+
+.vacio { padding: 44px; text-align: center; color: var(--color-texto-suave); }
+
+/* ---------- Login ---------- */
+
+.login-fondo {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--color-acento) 0%, #0e2340 100%);
+}
+
+.login-caja {
+  background: var(--color-superficie);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(10, 20, 40, 0.35);
+  padding: 38px 40px;
+  width: 380px;
+}
+.login-caja h1 { margin: 0 0 4px; font-size: 22px; color: var(--color-acento); }
+.login-caja .sub { color: var(--color-texto-suave); font-size: 14px; margin-bottom: 22px; }
+.login-caja label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 4px; }
+.login-caja input {
+  font: inherit;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-borde);
+  border-radius: 7px;
+}
+.login-caja .boton { width: 100%; margin-top: 20px; }
+.login-caja .error { background: var(--rojo-suave); color: var(--rojo); border-radius: 7px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 6px; }

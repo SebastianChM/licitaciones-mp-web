@@ -44,6 +44,22 @@ no solo refrescos entre días. Limitación conocida a evaluar en M2: hoy `descri
 conserva solo el último ítem; si el matching por COMPONENTE pierde señal, se acumularán los
 ítems en un campo texto o tabla propia.
 
+## 2026-07-06 — Frontend: templates de Django + CSS propio, sin SPA ni build step
+
+**Contexto:** el Admin es una herramienta de operación, no un producto usable por el
+equipo comercial. Se necesita una interfaz amigable para el flujo diario (ver relevantes,
+revisar trazabilidad, avanzar el estado de gestión).
+**Decisión:** app `portal` con vistas server-rendered (Django templates) y un design
+system CSS propio (custom properties, un solo archivo estático). Sin React/Vue (P5:
+sobre-ingeniería para un MVP de equipo interno; agregaría build step, CORS y manejo de
+estado duplicado), sin Tailwind/Bootstrap (P7: dependencia no justificada cuando el
+alcance visual es una lista, un detalle y un formulario), sin htmx por ahora (candidato
+natural si el portal crece; queda como evolución documentada).
+**Consecuencias:** interactividad por formularios GET/POST estándar (funciona sin JS);
+la API DRF queda para integraciones externas y el portal usa vistas propias con la
+sesión de Django. Si el producto crece a interacciones ricas, el paso siguiente es htmx,
+no un SPA.
+
 ## 2026-07-05 — Port del motor corrige bug latente del boost UNSPSC
 
 **Contexto:** en el original, `_TAXONOMIA_ALTA_N2` contiene frases CON acento

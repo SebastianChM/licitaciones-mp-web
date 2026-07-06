@@ -26,6 +26,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "DTZ", "RUF", "C4", "PTH", "PERF", "S
 "apps/**/serializers.py" = ["RUF012"]
 "apps/**/views.py" = ["RUF012"]
 "apps/**/filters.py" = ["RUF012"]
+"apps/**/forms.py" = ["RUF012"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"

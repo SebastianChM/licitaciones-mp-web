@@ -1,0 +1,27 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es-cl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingresar - Licitaciones MP</title>
+  <link rel="stylesheet" href="{% static 'portal/estilos.css' %}">
+</head>
+<body class="login-fondo">
+  <div class="login-caja">
+    <h1>Licitaciones MP</h1>
+    <p class="sub">Descubrimiento y gestión de licitaciones públicas</p>
+    {% if form.errors %}
+      <div class="error">Usuario o contraseña incorrectos. Intenta de nuevo.</div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username">Usuario</label>
+      <input type="text" name="username" id="id_username" autofocus autocomplete="username">
+      <label for="id_password">Contraseña</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password">
+      <button type="submit" class="boton">Ingresar</button>
+      <input type="hidden" name="next" value="{{ next }}">
+    </form>
+  </div>
+</body>
+</html>
